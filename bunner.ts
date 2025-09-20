@@ -1,10 +1,11 @@
 import path from "node:path";
+import { version } from "#/package.json";
 import { Namespace } from "#/src/namespace";
 
 const bunner = new Namespace({ name: "bunner" });
 bunner.task({ name: "install", command: ["bun", "install"] });
 
-const common = ["bun", "build", "--compile", "--minify", "./src/index.ts"];
+const common = ["bun", "build", "--compile", "--minify", "./src/index.ts", `--define=process.env.VERSION="${version}"`];
 const darwin = bunner.child(new Namespace({ name: "darwin" }));
 const linux = bunner.child(new Namespace({ name: "linux" }));
 const windows = bunner.child(new Namespace({ name: "windows" }));

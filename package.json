@@ -1,11 +1,12 @@
 {
   "name": "bunner",
-  "module": "index.ts",
+  "version": "0.0.3",
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
     "@tsconfig/strictest": "^2.0.5",
     "@types/bun": "latest"
   },
   "dependencies": {
+    "commander": "^14.0.1"
   }
 }

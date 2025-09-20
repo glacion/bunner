@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "lib": ["ESNext"],
     "noEmit": true,
+    "resolveJsonModule": true,
     "paths": {
       "#/*": ["*"]
     }

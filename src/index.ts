@@ -1,29 +1,28 @@
-import { parseArgs } from "node:util";
+import path from "node:path";
+import { Command } from "commander";
 import type { Namespace } from "#/src/namespace";
 
-const args = parseArgs({
-  allowPositionals: true,
-  args: Bun.argv,
-  strict: true,
-  options: {
-    file: { default: "bunner.ts", multiple: false, short: "f", type: "string" },
-    list: { default: true, multiple: false, short: "l", type: "boolean" },
-    task: { multiple: true, short: "t", type: "string" },
-  },
-});
-
 const main = async () => {
-  const module = await import(args.values.file);
-  const namespace = module.default as Namespace;
-  const namespaces = namespace.collect();
-  if (args.values.task) {
-    const targets = args.values.task.flatMap((pattern) => namespace.select(new RegExp(pattern)));
+  const app = new Command();
+  await app
+    .name("bunner")
+    .description("A simple task runner")
+    .version(process.env["VERSION"] || "0.0.0")
+    .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
+    .argument("[tasks...]", "tasks to run")
+    .parseAsync(process.argv);
+
+  const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
+  if (!("select" in module.default)) throw new Error("default export should be a namespace");
+
+  if (app.args) {
+    const targets = app.args.flatMap((pattern: string) => module.default.select(new RegExp(pattern)));
     await Promise.all(targets.map((task) => task.spawn()));
-  } else if (args.values.list)
-    console.table(
-      namespaces.flatMap((namespace) => Object.values(namespace.tasks)),
-      ["fqdn", "description"],
-    );
+  } else {
+    // Default action: list all tasks
+    const tasks = module.default.collect().flatMap((namespace: Namespace) => Object.values(namespace.tasks));
+    console.table(tasks, ["fqdn", "description"]);
+  }
 };
 
 main().catch(console.error);
