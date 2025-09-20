@@ -1,0 +1,6 @@
+[env]
+_.path = ["node_modules/.bin"]
+DO_NOT_TRACK = 1
+
+[tools]
+bun = "1.2.22"
