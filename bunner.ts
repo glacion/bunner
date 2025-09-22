@@ -1,6 +1,6 @@
 import path from "node:path";
+import { Namespace } from "@glacion/bunner/src/namespace";
 import { version } from "#/package.json";
-import { Namespace } from "#/src/namespace";
 
 const bunner = new Namespace({ name: "bunner" });
 bunner.task({ name: "install", command: ["bun", "install"] });

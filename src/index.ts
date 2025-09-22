@@ -1,3 +1,5 @@
+#!/usr/bin/node
+
 import path from "node:path";
 import { Command } from "commander";
 import type { Namespace } from "#/src/namespace";
