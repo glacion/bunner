@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Namespace } from "@glacion/bunner/src/namespace";
+import { Namespace } from "@glacion/bunner/lib/namespace";
 import { version } from "#/package.json";
 
 const bunner = new Namespace({ name: "bunner" });

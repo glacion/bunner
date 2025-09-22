@@ -1,12 +1,12 @@
 {
   "name": "@glacion/bunner",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "dependencies": {
     "commander": "^14.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
-    "@glacion/bunner": "^0.0.6",
+    "@glacion/bunner": "^0.0.9",
     "@tsconfig/strictest": "^2.0.5",
     "@types/bun": "latest"
   },

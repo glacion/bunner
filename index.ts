@@ -17,7 +17,7 @@ const main = async () => {
   const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
   if (!("select" in module.default)) throw new Error("default export should be a namespace");
 
-  if (app.args) {
+  if (app.args.length) {
     const targets = app.args.flatMap((pattern: string) => module.default.select(new RegExp(pattern)));
     await Promise.all(targets.map((task) => task.spawn()));
   } else {
