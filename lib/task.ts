@@ -14,7 +14,6 @@ export interface TaskConfig {
 
 export class Task {
   description: string;
-  fqn: string;
 
   private command: string[] | undefined;
   private dependencies: (string | Task)[];
@@ -32,8 +31,10 @@ export class Task {
     this.environment = config.environment;
     this.name = config.name;
     this.namespace = config.namespace;
+  }
 
-    this.fqn = `${this.namespace.fqn}:${this.name}`;
+  get fqn(): string {
+    return `${this.namespace.fqn}:${this.name}`;
   }
 
   private async stream(stream: ReadableStream<Uint8Array> | undefined, handler: (msg: string) => void) {

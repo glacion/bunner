@@ -3,6 +3,7 @@
 import path from "node:path";
 import { Command } from "commander";
 import type { Namespace } from "#/lib/namespace";
+import type { Task } from "#/lib/task";
 
 const main = async () => {
   const app = new Command();
@@ -22,8 +23,10 @@ const main = async () => {
     await Promise.all(targets.map((task) => task.spawn()));
   } else {
     // Default action: list all tasks
-    const tasks = module.default.collect().flatMap((namespace: Namespace) => Object.values(namespace.tasks));
-    console.table(tasks, ["fqn", "description"]);
+    module.default
+      .collect()
+      .flatMap((namespace: Namespace) => Object.values(namespace.tasks))
+      .forEach((task: Task) => console.log(task.fqn));
   }
 };
 
