@@ -8,7 +8,6 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.2.4",
-        "@glacion/bunner": "^0.0.9",
         "@tsconfig/strictest": "^2.0.5",
         "@types/bun": "latest",
       },
@@ -32,8 +31,6 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.2.4", "", { "os": "win32", "cpu": "arm64" }, "sha512-NXnfTeKHDFUWfxAefa57DiGmu9VyKi0cDqFpdI+1hJWQjGJhJutHPX0b5m+eXvTKOaf+brU+P0JrQAZMb5yYaQ=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.2.4", "", { "os": "win32", "cpu": "x64" }, "sha512-3Y4V4zVRarVh/B/eSHczR4LYoSVyv3Dfuvm3cWs5w/HScccS0+Wt/lHOcDTRYeHjQmMYVC3rIRWqyN2EI52+zg=="],
-
-    "@glacion/bunner": ["@glacion/bunner@0.0.9", "", { "dependencies": { "commander": "^14.0.1" } }, "sha512-2r/uyva8u/wGFo07FgEZheD2zEd56Q+Uo9ahG+rQh8gBIhqbG7VTFeoW4YMOquw4CQyDBwowXsxzBsLh5v4iTA=="],
 
     "@tsconfig/strictest": ["@tsconfig/strictest@2.0.5", "", {}, "sha512-ec4tjL2Rr0pkZ5hww65c+EEPYwxOi4Ryv+0MtjeaSQRJyq322Q27eOQiFbuNgw2hpL4hB1/W/HBGk3VKS43osg=="],
 
