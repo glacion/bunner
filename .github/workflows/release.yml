@@ -31,5 +31,5 @@ jobs:
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org
-      - run: npm clean-install
+      - run: npm install
       - run: npm publish --access=public --provenance
