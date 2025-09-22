@@ -1,6 +1,6 @@
 import { EOL } from "node:os";
 import type { SpawnOptions } from "bun";
-import type { Namespace } from "#/src/namespace";
+import type { Namespace } from "#/lib/namespace";
 
 export interface TaskConfig {
   command?: string[];

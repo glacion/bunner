@@ -1,8 +1,8 @@
-#!/usr/bin/node
+#!/usr/bin/env node
 
 import path from "node:path";
 import { Command } from "commander";
-import type { Namespace } from "#/src/namespace";
+import type { Namespace } from "#/lib/namespace";
 
 const main = async () => {
   const app = new Command();

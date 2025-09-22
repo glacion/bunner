@@ -1,19 +1,18 @@
 {
-  "main": "src/index.ts",
   "name": "@glacion/bunner",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "dependencies": {
     "commander": "^14.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
-    "@glacion/bunner": "^0.0.5",
+    "@glacion/bunner": "^0.0.6",
     "@tsconfig/strictest": "^2.0.5",
     "@types/bun": "latest"
   },
   "files": [
     "tsconfig.json",
-    "src"
+    "lib"
   ],
   "repository": {
     "url": "git+ssh://git@github.com/glacion/bunner.git"

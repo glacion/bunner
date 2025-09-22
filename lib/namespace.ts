@@ -1,4 +1,4 @@
-import { Task, type TaskConfig } from "#/src/task";
+import { Task, type TaskConfig } from "#/lib/task";
 
 export interface NamespaceConfig {
   directory?: string;
