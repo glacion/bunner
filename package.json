@@ -1,6 +1,6 @@
 {
   "name": "@glacion/bunner",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "dependencies": {
     "commander": "^14.0.1"
   },

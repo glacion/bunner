@@ -5,7 +5,6 @@ import type { Namespace } from "#/lib/namespace";
 export interface TaskConfig {
   command?: string[];
   dependencies?: (string | Task)[];
-  description?: string;
   directory?: string;
   environment?: Record<string, string>;
   name: string;
@@ -13,8 +12,6 @@ export interface TaskConfig {
 }
 
 export class Task {
-  description: string;
-
   private command: string[] | undefined;
   private dependencies: (string | Task)[];
   private directory: string | undefined;
@@ -26,7 +23,6 @@ export class Task {
   constructor(config: TaskConfig) {
     this.command = config.command;
     this.dependencies = config.dependencies ?? [];
-    this.description = config.description ?? "";
     this.directory = config.directory;
     this.environment = config.environment;
     this.name = config.name;
