@@ -23,7 +23,7 @@ const main = async () => {
   } else {
     // Default action: list all tasks
     const tasks = module.default.collect().flatMap((namespace: Namespace) => Object.values(namespace.tasks));
-    console.table(tasks, ["fqdn", "description"]);
+    console.table(tasks, ["fqn", "description"]);
   }
 };
 

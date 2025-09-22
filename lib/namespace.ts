@@ -12,15 +12,11 @@ export class Namespace {
   name: string;
   parent: Namespace | undefined;
   tasks: Record<string, Task> = {};
-  fqdn: string;
 
   constructor(config: NamespaceConfig) {
     this.directory = config.directory;
     this.name = config.name;
     this.parent = config.parent;
-
-    if (config.parent) this.fqdn = `${config.parent.fqdn}:${this.name}`;
-    else this.fqdn = this.name;
   }
 
   child(namespace: Namespace): Namespace {
@@ -36,16 +32,21 @@ export class Namespace {
     return namespaces;
   }
 
+  get fqn(): string {
+    if (this.parent) return `${this.parent.fqn}:${this.name}`;
+    return this.name;
+  }
+
   root(): Namespace {
     if (this.parent) return this.parent.root();
     return this;
   }
 
   select(pattern: RegExp, tasks: Task[] = []): Task[] {
-    Object.values(this.tasks)
-      .filter((task) => pattern.test(task.fqdn))
-      .map((task) => tasks.push(task));
     Object.values(this.children).map((child) => child.select(pattern, tasks));
+    Object.values(this.tasks)
+      .filter((task) => pattern.test(task.fqn))
+      .map((task) => tasks.push(task));
     return tasks;
   }
 

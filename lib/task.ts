@@ -14,7 +14,7 @@ export interface TaskConfig {
 
 export class Task {
   description: string;
-  fqdn: string;
+  fqn: string;
 
   private command: string[] | undefined;
   private dependencies: (string | Task)[];
@@ -33,7 +33,7 @@ export class Task {
     this.name = config.name;
     this.namespace = config.namespace;
 
-    this.fqdn = `${this.namespace.fqdn}:${this.name}`;
+    this.fqn = `${this.namespace.fqn}:${this.name}`;
   }
 
   private async stream(stream: ReadableStream<Uint8Array> | undefined, handler: (msg: string) => void) {
@@ -51,7 +51,7 @@ export class Task {
   private resolve(pattern: string | Task, namespace: Namespace): Task[] {
     if (pattern instanceof Task) return [pattern];
     const tasks = namespace.root().select(new RegExp(pattern));
-    return tasks.filter((task) => task.fqdn !== this.fqdn);
+    return tasks.filter((task) => task.fqn !== this.fqn);
   }
 
   async spawn(): Promise<number> {
@@ -73,8 +73,8 @@ export class Task {
     this.process = Bun.spawn<"ignore", "pipe", "pipe">(this.command, options);
 
     await Promise.all([
-      this.stream(this.process.stdout, (line) => console.log(`[${this.fqdn}]: ${line}`)),
-      this.stream(this.process.stderr, (line) => console.error(`[${this.fqdn}]: ${line}`)),
+      this.stream(this.process.stdout, (line) => console.log(`[${this.fqn}]: ${line}`)),
+      this.stream(this.process.stderr, (line) => console.error(`[${this.fqn}]: ${line}`)),
     ]);
 
     return await this.process.exited;
