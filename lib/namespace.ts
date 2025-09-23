@@ -40,9 +40,12 @@ export class Namespace {
   resolve(task: string | Task): Task {
     if (task instanceof Task) return task;
     if (this.tasks[task]) return this.tasks[task];
-    const found = Object.values(this.tasks).find((val) => val.fqn === task);
+    const found = this.collect()
+      .filter((namespace) => task.includes(namespace.name))
+      .flatMap((namespace) => Object.values(namespace.tasks))
+      .find((val) => val.fqn.endsWith(task));
     if (found) return found;
-    if (this.parent) return this.parent?.resolve(task);
+    if (this.parent) return this.parent.resolve(task);
     throw new Error("task could not be resolved");
   }
 
