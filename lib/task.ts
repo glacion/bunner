@@ -5,6 +5,7 @@ import { type Color, random } from "#/lib/color";
 import type { Namespace } from "#/lib/namespace";
 
 export interface TaskConfig {
+  color?: Color;
   command?: string[];
   dependencies?: (string | Task)[];
   directory?: string;
@@ -24,7 +25,7 @@ export class Task {
   private process?: Bun.Subprocess<"ignore", "pipe", "pipe">;
 
   constructor(config: TaskConfig) {
-    this.color = random();
+    this.color = config.color ?? random();
     this.command = config.command;
     this.dependencies = config.dependencies ?? [];
     this.directory = config.directory;
@@ -49,16 +50,8 @@ export class Task {
     }
   }
 
-  // TODO: take a single task or fqn, resolve it to a task, don't select for dependencies.
-  // TODO: move this to the parent namespace.
-  private resolve(task: string | Task, namespace: Namespace): Task[] {
-    if (task instanceof Task) return [task];
-    const tasks = namespace.root.select(new RegExp(task));
-    return tasks.filter((task) => task.fqn !== this.fqn);
-  }
-
   async spawn(): Promise<number> {
-    const dependencies = this.dependencies.flatMap((task) => this.resolve(task, this.namespace));
+    const dependencies = this.dependencies.map((task) => this.namespace.resolve(task));
     const codes = await Promise.all(dependencies.map((dependency) => dependency.spawn()));
     const code = codes.reduce((previous, current) => previous + current, 0);
     if (code !== 0 || !this.command) return code; // Any of the dependencies failed or task is a metatask

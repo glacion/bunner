@@ -37,6 +37,15 @@ export class Namespace {
     return this.name;
   }
 
+  resolve(task: string | Task): Task {
+    if (task instanceof Task) return task;
+    if (this.tasks[task]) return this.tasks[task];
+    const found = Object.values(this.tasks).find((val) => val.fqn === task);
+    if (found) return found;
+    if (this.parent) return this.parent?.resolve(task);
+    throw new Error("task could not be resolved");
+  }
+
   get root(): Namespace {
     if (this.parent) return this.parent.root;
     return this;
