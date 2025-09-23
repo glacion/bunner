@@ -20,7 +20,9 @@ const main = async () => {
 
   if (app.args.length) {
     const targets = app.args.flatMap((pattern: string) => module.default.select(new RegExp(pattern)));
-    await Promise.all(targets.map((task) => task.spawn()));
+    const codes = await Promise.all(targets.map((task) => task.spawn()));
+    const code = codes.reduce((previous, current) => previous + current, 0);
+    process.exit(code);
   } else {
     // Default action: list all tasks
     module.default
