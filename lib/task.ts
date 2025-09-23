@@ -1,6 +1,7 @@
 import { EOL } from "node:os";
+import type { Writable } from "node:stream";
 import { styleText } from "node:util";
-import { type SpawnOptions, stderr, stdout } from "bun";
+import type { SpawnOptions } from "bun";
 import { type Color, random } from "#/lib/color";
 import type { Namespace } from "#/lib/namespace";
 
@@ -50,7 +51,7 @@ export class Task {
     }
   }
 
-  async spawn(): Promise<number> {
+  async spawn(stderr: Writable = process.stderr, stdout: Writable = process.stdout): Promise<number> {
     const dependencies = this.dependencies.map((task) => this.namespace.resolve(task));
     const codes = await Promise.all(dependencies.map((dependency) => dependency.spawn()));
     const code = codes.reduce((previous, current) => previous + current, 0);
@@ -71,6 +72,7 @@ export class Task {
     await Promise.all([
       this.stream(this.process.stdout, (line) => stdout.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
       this.stream(this.process.stderr, (line) => stderr.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
+      this.process.exited,
     ]);
 
     return await this.process.exited;
