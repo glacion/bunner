@@ -37,8 +37,8 @@ export class Namespace {
     return this.name;
   }
 
-  root(): Namespace {
-    if (this.parent) return this.parent.root();
+  get root(): Namespace {
+    if (this.parent) return this.parent.root;
     return this;
   }
 

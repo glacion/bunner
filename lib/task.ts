@@ -1,5 +1,7 @@
 import { EOL } from "node:os";
-import type { SpawnOptions } from "bun";
+import { styleText } from "node:util";
+import { type SpawnOptions, stderr, stdout } from "bun";
+import { type Color, random } from "#/lib/color";
 import type { Namespace } from "#/lib/namespace";
 
 export interface TaskConfig {
@@ -12,6 +14,7 @@ export interface TaskConfig {
 }
 
 export class Task {
+  private color: Color;
   private command: string[] | undefined;
   private dependencies: (string | Task)[];
   private directory: string | undefined;
@@ -21,6 +24,7 @@ export class Task {
   private process?: Bun.Subprocess<"ignore", "pipe", "pipe">;
 
   constructor(config: TaskConfig) {
+    this.color = random();
     this.command = config.command;
     this.dependencies = config.dependencies ?? [];
     this.directory = config.directory;
@@ -45,9 +49,11 @@ export class Task {
     }
   }
 
-  private resolve(pattern: string | Task, namespace: Namespace): Task[] {
-    if (pattern instanceof Task) return [pattern];
-    const tasks = namespace.root().select(new RegExp(pattern));
+  // TODO: take a single task or fqn, resolve it to a task, don't select for dependencies.
+  // TODO: move this to the parent namespace.
+  private resolve(task: string | Task, namespace: Namespace): Task[] {
+    if (task instanceof Task) return [task];
+    const tasks = namespace.root.select(new RegExp(task));
     return tasks.filter((task) => task.fqn !== this.fqn);
   }
 
@@ -70,8 +76,8 @@ export class Task {
     this.process = Bun.spawn<"ignore", "pipe", "pipe">(this.command, options);
 
     await Promise.all([
-      this.stream(this.process.stdout, (line) => console.log(`[${this.fqn}]: ${line}`)),
-      this.stream(this.process.stderr, (line) => console.error(`[${this.fqn}]: ${line}`)),
+      this.stream(this.process.stdout, (line) => stdout.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
+      this.stream(this.process.stderr, (line) => stderr.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
     ]);
 
     return await this.process.exited;

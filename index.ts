@@ -16,7 +16,7 @@ const main = async () => {
     .parseAsync(process.argv);
 
   const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
-  if (!("select" in module.default)) throw new Error("default export should be a namespace");
+  if (!module.default.select) throw new Error("default export should be a namespace");
 
   if (app.args.length) {
     const targets = app.args.flatMap((pattern: string) => module.default.select(new RegExp(pattern)));
@@ -26,7 +26,7 @@ const main = async () => {
     module.default
       .collect()
       .flatMap((namespace: Namespace) => Object.values(namespace.tasks))
-      .forEach((task: Task) => console.log(task.fqn));
+      .map((task: Task) => console.log(task.fqn));
   }
 };
 
