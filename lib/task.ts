@@ -70,8 +70,8 @@ export class Task {
     this.process = Bun.spawn<"ignore", "pipe", "pipe">(this.command, options);
 
     await Promise.all([
-      this.stream(this.process.stdout, (line) => stdout.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
-      this.stream(this.process.stderr, (line) => stderr.write(styleText(this.color, `[${this.fqn}]: ${line}\n`))),
+      this.stream(this.process.stdout, (line) => stdout.write(`[${styleText(this.color, this.fqn)}]: ${line}\n`)),
+      this.stream(this.process.stderr, (line) => stderr.write(`[${styleText(this.color, this.fqn)}]: ${line}\n`)),
       this.process.exited,
     ]);
 
