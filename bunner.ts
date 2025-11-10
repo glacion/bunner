@@ -1,30 +1,37 @@
 import path from "node:path";
 import { Namespace } from "#/lib/namespace";
-import { version } from "#/package.json";
 
 const bunner = new Namespace({ name: "bunner" });
-const install = bunner.task({ name: "install", command: ["bun", "install"] });
 
-const common = ["bun", "build", "--compile", "./index.ts", `--define=process.env.VERSION="${version}"`];
-const darwin = bunner.child(new Namespace({ name: "darwin" }));
-const linux = bunner.child(new Namespace({ name: "linux" }));
-const windows = bunner.child(new Namespace({ name: "windows" }));
-
-darwin.task({ command: [...common, "--outfile=dist/bunner_darwin_arm64", "--target=bun-darwin-arm64"], dependencies: [install], name: "arm64" });
-darwin.task({ command: [...common, "--outfile=dist/bunner_darwin_amd64", "--target=bun-darwin-x64"], dependencies: [install], name: "amd64" });
-
-linux.task({ command: [...common, "--outfile=dist/bunner_linux_amd64", "--target=bun-linux-x64-baseline"], dependencies: [install], name: "amd64" });
-linux.task({ command: [...common, "--outfile=dist/bunner_linux_arm64", "--target=bun-linux-arm64"], dependencies: [install], name: "arm64" });
-
-windows.task({ command: [...common, "--outfile=dist/bunner_windows_amd64", "--target=bun-windows-x64"], dependencies: [install], name: "amd64" });
+const runCli = async (args: string[] = [], options: { cwd?: string } = {}) => {
+  const cwd = options.cwd ?? process.cwd();
+  const entry = path.resolve(__dirname, "src/index.ts");
+  const fixture = path.resolve(__dirname, "test/bunner.ts");
+  const scriptArgs = ["--file", path.relative(cwd, fixture), ...args];
+  const command = ["bun", "run", entry, "--", ...scriptArgs];
+  const child = Bun.spawn(command, { cwd, stderr: "pipe", stdout: "pipe" });
+  const stdoutPromise = child.stdout ? child.stdout.text() : Promise.resolve("");
+  const stderrPromise = child.stderr ? child.stderr.text() : Promise.resolve("");
+  const [stdout, stderr, exitCode] = await Promise.all([stdoutPromise, stderrPromise, child.exited]);
+  return { exitCode, stderr, stdout };
+};
 
 bunner.task({
-  command: ["bash", "-c", "sha256sum bunner_* > CHECKSUM"],
-  dependencies: bunner.collect().flatMap((namespace) => Object.values(namespace.tasks)),
-  directory: path.resolve(__dirname, "dist"),
-  name: "checksum",
+  name: "test",
+  command: ["bun", "test"],
 });
 
-bunner.task({ dependencies: ["bunner:checksum"], name: "release" });
+bunner.task({
+  name: "test:cli",
+  run: async () => {
+    const result = await runCli(["--list"]);
+    if (result.exitCode !== 0) throw new Error(`CLI tests failed with code ${result.exitCode}\n${result.stderr}`);
+  },
+});
+
+bunner.task({
+  name: "bunner:test",
+  dependencies: ["test", "test:cli"],
+});
 
 export default bunner;
