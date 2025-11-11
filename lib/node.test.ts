@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Node } from "#/lib/node";
+import { Node } from "./node";
 
 describe("node", () => {
   describe("name", () => {

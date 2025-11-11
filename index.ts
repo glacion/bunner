@@ -2,8 +2,8 @@
 
 import path from "node:path";
 import { Command } from "commander";
-import { Graph } from "#/lib/graph";
-import type { Node } from "#/lib/node";
+import { Graph } from "./lib/graph";
+import type { Node } from "./lib/node";
 
 interface Options {
   file: string;

@@ -24,8 +24,8 @@ Create a `bunner.ts` file at the root of your repo and export a single `Node`. E
 
 ```ts
 // bunner.ts
-import { Command } from "#/lib/command";
-import { Node } from "#/lib/node";
+import { Command } from "./lib/command";
+import { Node } from "./lib/node";
 
 const root = new Node({ name: "bunner" });
 
@@ -55,6 +55,86 @@ bunx bunner "lint|test"
 
 # Run the publish pipeline (dependencies run first, concurrently when possible)
 bunx bunner publish
+```
+
+## Examples
+
+### Workspace build + deploy
+The snippet below shows how you can fan out builds per package while keeping the CLI invocations short.
+
+```ts
+// bunner.ts
+import path from "node:path";
+import { Command } from "./lib/command";
+import { Node } from "./lib/node";
+
+const root = new Node({ name: "bunner" });
+const workspace = root.child(new Node({ name: "workspace" }));
+
+const apps = ["web", "docs", "landing"];
+apps.forEach((app) => {
+  workspace.child(
+    new Command({
+      name: app,
+      cwd: path.join(import.meta.dir, "apps", app),
+      command: ["bun", "run", "build"],
+    }),
+  );
+});
+
+root.child(
+  new Command({
+    name: "deploy",
+    command: ["bun", "run", "scripts/deploy.ts"],
+    environment: { AWS_PROFILE: "prod" },
+    dependencies: [/workspace:/], // wait for every workspace:<app> build
+  }),
+);
+
+export default root;
+```
+
+Run a single build or the whole release:
+
+```bash
+bunx bunner workspace:web          # build just the web app
+bunx bunner "workspace:(web|docs)" # build multiple apps via regex
+bunx bunner deploy                 # build everything, then deploy
+```
+
+### Chaining smoke + e2e suites
+You can resolve dependencies by name (`"build:api"`) or by pattern (`/^build:/`). That makes it easy to reuse graphs for test pipelines.
+
+```ts
+const root = new Node({ name: "bunner" });
+
+const build = root.child(new Command({ name: "build", command: ["bun", "run", "build"] }));
+
+const smoke = root.child(
+  new Command({
+    name: "smoke",
+    command: ["bun", "run", "test", "--", "--runInBand"],
+    dependencies: [build],
+  }),
+);
+
+root.child(
+  new Command({
+    name: "e2e",
+    command: ["bun", "run", "playwright", "test"],
+    dependencies: [smoke],
+  }),
+);
+```
+
+Execute only smoke tests during PRs, then chain the e2e suite on main:
+
+```bash
+# Pull request checks
+bunx bunner "smoke"
+
+# Nightly or main-branch jobs
+bunx bunner e2e
 ```
 
 ## CLI reference

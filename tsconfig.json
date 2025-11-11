@@ -1,16 +1,12 @@
 {
   "extends": ["@tsconfig/strictest/tsconfig.json"],
   "compilerOptions": {
-    "baseUrl": ".",
     "esModuleInterop": true,
     "lib": ["esnext"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmit": true,
     "resolveJsonModule": true,
-    "target": "esnext",
-    "paths": {
-      "#/*": ["*"]
-    }
+    "target": "esnext"
   }
 }

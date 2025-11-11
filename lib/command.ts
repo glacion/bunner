@@ -1,7 +1,7 @@
 import { EOL } from "node:os";
 import type { Writable } from "node:stream";
 import { styleText } from "node:util";
-import { Node, type NodeConfig, NodeStatus } from "#/lib/node";
+import { Node, type NodeConfig, NodeStatus } from "./node";
 
 export interface CommandConfig extends NodeConfig {
   command: string[];

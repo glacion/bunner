@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { Graph } from "#/lib/graph";
-import { Node } from "#/lib/node";
+import { Graph } from "./graph";
+import { Node } from "./node";
 
 describe("graph", () => {
   test("renders direct dependency edges for provided nodes", () => {

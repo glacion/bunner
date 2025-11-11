@@ -1,4 +1,4 @@
-import { type Color, random } from "#/lib/color";
+import { type Color, random } from "./color";
 
 export enum NodeStatus {
   FAIL,

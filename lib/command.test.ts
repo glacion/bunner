@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { Writable } from "node:stream";
 import { styleText } from "node:util";
-import { Command } from "#/lib/command";
-import { NodeStatus } from "#/lib/node";
+import { Command } from "./command";
+import { NodeStatus } from "./node";
 
 const writable = () => {
   const chunks: string[] = [];

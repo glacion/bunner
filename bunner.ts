@@ -1,5 +1,5 @@
-import { Command } from "#/lib/command";
-import { Node } from "#/lib/node";
+import { Command } from "./lib/command";
+import { Node } from "./lib/node";
 
 const bunner = new Node({ name: "bunner" });
 
