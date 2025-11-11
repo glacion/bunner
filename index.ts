@@ -10,24 +10,20 @@ interface Options {
   dryRun?: boolean;
 }
 
-const main = async () => {
-  const program = await new Command()
-    .name("bunner")
-    .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
-    .option("-n, --dry-run", "print the execution graph without running commands")
-    .argument("[args...]", "tasks to run")
-    .parseAsync(process.argv);
+const program = await new Command()
+  .name("bunner")
+  .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
+  .option("-n, --dry-run", "print the execution graph without running commands")
+  .argument("[args...]", "tasks to run")
+  .parseAsync(process.argv);
 
-  const options = program.opts<Options>();
+const options = program.opts<Options>();
 
-  const module = await import(path.resolve(process.cwd(), options.file));
-  if (!module.default.root?.resolve) throw new Error("default export must be a root node");
+const module = await import(path.resolve(process.cwd(), options.file));
+if (!module.default.root?.resolve) throw new Error("default export must be a root node");
 
-  if (program.args.length) {
-    const targets = program.args.flatMap((pattern) => module.default.root.resolve(new RegExp(pattern)));
-    if (options.dryRun) console.log(new Graph({ nodes: targets }).dot);
-    else await Promise.all(targets.map((target) => target.execute()));
-  } else module.default.root.resolve(/.*/).forEach((node: Node) => console.log(node.name));
-};
-
-await main();
+if (program.args.length) {
+  const targets = program.args.flatMap((pattern) => module.default.root.resolve(new RegExp(pattern)));
+  if (options.dryRun) console.log(new Graph({ nodes: targets }).dot);
+  else await Promise.all(targets.map((target) => target.execute()));
+} else module.default.root.resolve(/.*/).forEach((node: Node) => console.log(node.name));

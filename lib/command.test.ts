@@ -21,6 +21,7 @@ describe("command", () => {
   test("spawns the configured process and streams prefixed output", async () => {
     const stdout = writable();
     const stderr = writable();
+
     const command = new Command({ color: "cyan", command: ["echo", "start"], name: "build" });
 
     await command.execute(stderr.writable, stdout.writable);
