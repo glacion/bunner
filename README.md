@@ -1,77 +1,105 @@
 # bunner
 
-A simple task runner for Bun.
+`bunner` is a tiny, Bun-native task runner. Define your build, test, or release flow as a dependency graph of `Node`s and `Command`s, then run any portion of that graph with one command. Tasks stream their colored output as they execute, run concurrently when possible, and can be visualized as Graphviz DOT for quick sanity checks.
 
-## Usage
+## Requirements
+- Bun 1.1+ (the CLI uses `#!/usr/bin/env bun` and Bun's `spawn` API)
+- macOS, Linux, or WSL2 (Graphviz is optional, only needed when rendering `.dot`)
 
-**Install dependencies:**
-```bash
-bun install
-```
-
-**List available tasks:**
-```bash
-bun run src/index.ts
-```
-
-**Run tasks:**
-
-Provide one or more regular expressions to match the tasks you want to run.
+## Installation
+Install `bunner` alongside your Bun project (either locally or globally):
 
 ```bash
-# Run all tasks named 'ls'
-bun run index.ts '.*:ls'
+# project-local (recommended)
+bun add -d @glacion/bunner
 
-# Run all tasks in the 'child' namespace
-bun run index.ts 'child:.*'
+# or make the CLI globally available
+bun add -g @glacion/bunner
 ```
 
-**Preview execution:**
+After installing, `bunx bunner` (or the globally installed `bunner`) becomes available.
 
-Use `--dry-run` to print the dependency graph (in Graphviz DOT format) that would be executed without running any commands. You can pipe it straight into Graphviz to render an image:
+## Quick start
+Create a `bunner.ts` file at the root of your repo and export a single `Node`. Each child node becomes addressable via its fully-qualified name (`<parent>:<child>`).
+
+```ts
+// bunner.ts
+import { Command } from "#/lib/command";
+import { Node } from "#/lib/node";
+
+const root = new Node({ name: "bunner" });
+
+const install = root.child(new Command({ name: "install", command: ["bun", "install"] }));
+const lint = root.child(new Command({ name: "lint", command: ["biome", "ci"], dependencies: [install] }));
+const test = root.child(new Command({ name: "test", command: ["bun", "test"], dependencies: [install] }));
+
+root.child(
+  new Command({
+    name: "publish",
+    command: ["bun", "publish"],
+    dependencies: [lint, test],
+  }),
+);
+
+export default root;
+```
+
+With that definition in place you can:
 
 ```bash
-bun run index.ts 'child:build' 'child:test' --dry-run | dot -Tpng > graph.png
+# List all known tasks
+bunx bunner
+
+# Run every task whose name matches the regex "lint|test"
+bunx bunner "lint|test"
+
+# Run the publish pipeline (dependencies run first, concurrently when possible)
+bunx bunner publish
 ```
 
-Alternatively, let bunner call Graphviz for you:
+## CLI reference
+
+| Flag | Description |
+| ---- | ----------- |
+| `-f, --file <path>` | Path to the bunner definition file. Defaults to `bunner.ts` in the current working directory. |
+| `-n, --dry-run` | Print the Graphviz DOT for the execution plan instead of running commands. |
+| _patterns_ | Optional positional arguments treated as regular expressions. Each expression selects matching nodes (e.g. `build`, `ci:.*`, `.*:deploy`). If omitted, bunner prints the available node names. |
+
+`bunner` executes the resolved nodes in parallel and stops the moment one fails. When commands are running, a prefixed, colored stream makes it easy to follow mixed stdout/stderr:
+
+```
+[green lint]: Running biome ci
+[yellow test]: PASS lib/node.test.ts
+```
+
+## Previewing the graph
+
+Use `--dry-run` to inspect what would run:
 
 ```bash
-# Writes graph.png using Graphviz (requires `dot` on PATH)
-bun run index.ts 'child:build' --graph graph.png
-
-# Control the Graphviz format (e.g., SVG)
-bun run index.ts 'child:build' --graph graph.svg --graph-format svg
+bunx bunner publish --dry-run
 ```
 
-## Defining Tasks
+The output is pure DOT, so you can visualize it directly with Graphviz:
 
-Create `bunner.ts` files to define namespaces and tasks.
-
-**`bunner.ts`**
-```typescript
-import { Namespace } from "#/src/namespace";
-import "#/child/bunner";
-
-const ns = new Namespace({ name: "root" });
-
-ns.task({
-  name: "build",
-  command: ["bun", "build", "./src/index.ts"],
-});
-
-export default ns;
+```bash
+bunx bunner publish --dry-run | dot -Tpng > graph.png
 ```
 
-**`child/bunner.ts`**
-```typescript
-import root from "#/bunner";
+## Authoring nodes
 
-const ns = root.child({ name: "child" });
+- **`Node`** represents a namespace in the graph. Nodes can depend on other nodes by reference, by name, or by regular expression. When you call `node.child(...)`, the child is automatically registered under the root so it can be located later.
+- **`Command`** extends `Node` and schedules a real process. It accepts `command` (`string[]`), optional `cwd`, and `environment` overrides. Standard output and error are piped back to the CLI with the node's color.
 
-ns.task({
-  name: "test",
-  command: ["bun", "test"],
-  dependencies: ["build"], // Depends on the 'build' task
-});
+Under the hood, dependencies are resolved breadth-first and executed with `Promise.all`, so unrelated branches of your graph run concurrently. If a dependency fails, its parents are marked as failed without running their commands.
+
+## Development
+
+```bash
+bun install   # install dependencies
+bun test      # run the library test suite
 ```
+
+## License
+
+Released under the BSD 3-Clause license. See `LICENSE` for details.
