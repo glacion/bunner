@@ -8,6 +8,8 @@ const install = bunner.child(new Command({ name: "install", command: ["bun", "in
 const lint = bunner.child(new Command({ name: "lint", command: ["biome", "ci"], dependencies: [install] }));
 const test = bunner.child(new Command({ name: "test", command: ["bun", "test"], dependencies: [install] }));
 
-bunner.child(new Command({ name: "publish", command: ["bun", "publish"], dependencies: [lint, test] }));
+const check = bunner.child(new Node({ name: "check", dependencies: [lint, test] }));
+
+bunner.child(new Command({ name: "publish", command: ["bun", "publish"], dependencies: [check] }));
 
 export default bunner;
