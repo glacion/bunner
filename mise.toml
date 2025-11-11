@@ -3,5 +3,4 @@ _.path = ["node_modules/.bin"]
 DO_NOT_TRACK = 1
 
 [tools]
-bun = "1.2.22"
-"ubi:glacion/bunner" = "latest"
+bun = "1.3.2"

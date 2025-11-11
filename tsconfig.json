@@ -3,9 +3,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
-    "lib": ["ESNext"],
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "resolveJsonModule": true,
+    "target": "esnext",
     "paths": {
       "#/*": ["*"]
     }

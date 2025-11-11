@@ -1,38 +1,32 @@
 #!/usr/bin/env bun
 
 import path from "node:path";
-import { Command } from "commander";
-import type { Namespace } from "#/lib/namespace";
-import type { Task } from "#/lib/task";
+import { Command as Node } from "commander";
+import type { Node } from "#/lib/node";
 
-const main = async () => {
-  const app = new Command();
-  await app
-    .name("bunner")
-    .description("A simple task runner")
-    .version(process.env["VERSION"] || "0.0.0")
-    .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
-    .argument("[tasks...]", "tasks to run")
-    .parseAsync(process.argv);
+const app = new Node();
+await app
+  .name("bunner")
+  .description("A simple task runner")
+  .version(process.env["VERSION"] || "0.0.0")
+  .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
+  .argument("[tasks...]", "tasks to run")
+  .parseAsync(process.argv);
 
-  const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
-  if (!module.default.select) throw new Error("default export should be a namespace");
+const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
+if (!module.default.root) throw new Error("default export should be a node");
 
-  if (app.args.length) {
-    const targets = app.args.flatMap((pattern: string) => module.default.select(new RegExp(pattern)));
-    const codes = await Promise.all(targets.map((task) => task.spawn()));
-    const code = codes.reduce((previous, current) => previous + current, 0);
-    process.exit(code);
-  } else {
-    // Default action: list all tasks
-    module.default
-      .collect()
-      .flatMap((namespace: Namespace) => Object.values(namespace.tasks))
-      .map((task: Task) => console.log(task.fqn));
-  }
-};
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (app.args.length) {
+  const targets = app.args.flatMap((pattern: string) => module.default.root.resolve(new RegExp(pattern)));
+  await Promise.all(
+    targets.map((target) => {
+      return target.execute();
+    }),
+  );
+} else {
+  // Default action: list all tasks
+  //
+  module.default.root
+    .resolve(/.*/)
+    .map((node: Node) => console.log(node.name));
+}
