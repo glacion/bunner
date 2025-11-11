@@ -33,12 +33,12 @@ export class Command extends Node {
         stdin: "ignore",
         stdout: "pipe",
       });
-    }
 
-    await Promise.all([
-      this.stream(this.process.stdout, (line) => stdout.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
-      this.stream(this.process.stderr, (line) => stderr.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
-    ]);
+      await Promise.all([
+        this.stream(this.process.stdout, (line) => stdout.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
+        this.stream(this.process.stderr, (line) => stderr.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
+      ]);
+    }
 
     if ((await this.process.exited) === 0) return NodeStatus.SUCCESS;
     else return NodeStatus.FAIL;

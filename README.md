@@ -16,14 +16,32 @@ bun run src/index.ts
 
 **Run tasks:**
 
-Use the `-t` flag to run tasks matching a regex.
+Provide one or more regular expressions to match the tasks you want to run.
 
 ```bash
 # Run all tasks named 'ls'
-bun run src/index.ts -t '.*:ls'
+bun run index.ts '.*:ls'
 
 # Run all tasks in the 'child' namespace
-bun run src/index.ts -t 'child:.*'
+bun run index.ts 'child:.*'
+```
+
+**Preview execution:**
+
+Use `--dry-run` to print the dependency graph (in Graphviz DOT format) that would be executed without running any commands. You can pipe it straight into Graphviz to render an image:
+
+```bash
+bun run index.ts 'child:build' 'child:test' --dry-run | dot -Tpng > graph.png
+```
+
+Alternatively, let bunner call Graphviz for you:
+
+```bash
+# Writes graph.png using Graphviz (requires `dot` on PATH)
+bun run index.ts 'child:build' --graph graph.png
+
+# Control the Graphviz format (e.g., SVG)
+bun run index.ts 'child:build' --graph graph.svg --graph-format svg
 ```
 
 ## Defining Tasks

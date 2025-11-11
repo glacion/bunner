@@ -1,32 +1,33 @@
 #!/usr/bin/env bun
 
 import path from "node:path";
-import { Command as Node } from "commander";
+import { Command } from "commander";
+import { Graph } from "#/lib/graph";
 import type { Node } from "#/lib/node";
 
-const app = new Node();
-await app
-  .name("bunner")
-  .description("A simple task runner")
-  .version(process.env["VERSION"] || "0.0.0")
-  .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
-  .argument("[tasks...]", "tasks to run")
-  .parseAsync(process.argv);
-
-const module = await import(path.resolve(process.cwd(), app.opts()["file"]));
-if (!module.default.root) throw new Error("default export should be a node");
-
-if (app.args.length) {
-  const targets = app.args.flatMap((pattern: string) => module.default.root.resolve(new RegExp(pattern)));
-  await Promise.all(
-    targets.map((target) => {
-      return target.execute();
-    }),
-  );
-} else {
-  // Default action: list all tasks
-  //
-  module.default.root
-    .resolve(/.*/)
-    .map((node: Node) => console.log(node.name));
+interface Options {
+  file: string;
+  dryRun?: boolean;
 }
+
+const main = async () => {
+  const program = await new Command()
+    .name("bunner")
+    .option("-f, --file <path>", "the bunner file to use", "bunner.ts")
+    .option("-n, --dry-run", "print the execution graph without running commands")
+    .argument("[args...]", "tasks to run")
+    .parseAsync(process.argv);
+
+  const options = program.opts<Options>();
+
+  const module = await import(path.resolve(process.cwd(), options.file));
+  if (!module.default.root?.resolve) throw new Error("default export must be a root node");
+
+  if (program.args.length) {
+    const targets = program.args.flatMap((pattern) => module.default.root.resolve(new RegExp(pattern)));
+    if (options.dryRun) console.log(new Graph({ nodes: targets }).dot);
+    else await Promise.all(targets.map((target) => target.execute()));
+  } else module.default.root.resolve(/.*/).forEach((node: Node) => console.log(node.name));
+};
+
+await main();
