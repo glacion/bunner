@@ -8,6 +8,7 @@ export enum NodeStatus {
 export interface NodeConfig {
   color?: Color;
   dependencies?: (string | RegExp | Node)[];
+  directory?: string;
   name: string;
   parent?: Node;
 }
@@ -16,6 +17,7 @@ export class Node {
   children: Record<string, Node>;
   color: Color;
   dependencies: (string | RegExp | Node)[];
+  directory: string;
   parent: Node | undefined;
   name: string;
 
@@ -23,6 +25,7 @@ export class Node {
     this.children = {};
     this.color = config.color ?? random();
     this.dependencies = config.dependencies ?? [];
+    this.directory = config.directory ?? import.meta.dir;
     this.name = config.name;
     if (config.parent) config.parent.child(this);
   }

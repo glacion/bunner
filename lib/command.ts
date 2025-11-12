@@ -5,20 +5,17 @@ import { Node, type NodeConfig, NodeStatus } from "./node";
 
 export interface CommandConfig extends NodeConfig {
   command: string[];
-  cwd?: string;
   environment?: Record<string, string>;
 }
 
 export class Command extends Node {
   private command: string[];
-  private cwd: string;
   private environment: Record<string, string> | undefined;
   private process?: Bun.Subprocess<"ignore", "pipe", "pipe">;
 
   constructor(config: CommandConfig) {
     super(config);
     this.command = config.command;
-    this.cwd = config.cwd ?? import.meta.dir;
     this.environment = config.environment;
   }
 
@@ -27,7 +24,7 @@ export class Command extends Node {
     if (!this.process) {
       this.process = Bun.spawn({
         cmd: this.command,
-        cwd: this.cwd,
+        cwd: this.directory,
         env: { ...process.env, ...this.environment },
         stderr: "pipe",
         stdin: "ignore",
