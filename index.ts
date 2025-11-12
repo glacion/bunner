@@ -3,7 +3,7 @@
 import path from "node:path";
 import { Command } from "commander";
 import { Graph } from "./lib/graph";
-import type { Node } from "./lib/node";
+import { type Node, NodeStatus } from "./lib/node";
 
 interface Options {
   file: string;
@@ -22,8 +22,13 @@ const options = program.opts<Options>();
 const module = await import(path.resolve(process.cwd(), options.file));
 if (!module.default.root?.resolve) throw new Error("default export must be a root node");
 
-if (program.args.length) {
+if (!program.args.length) module.default.root.resolve(/./).forEach((node: Node) => console.log(node.fqn));
+else {
   const targets = program.args.flatMap((pattern) => module.default.root.resolve(new RegExp(pattern)));
   if (options.dryRun) console.log(new Graph({ nodes: targets }).dot);
-  else await Promise.all(targets.map((target) => target.execute()));
-} else module.default.root.resolve(/./).forEach((node: Node) => console.log(node.fqn));
+  else {
+    const statuses: NodeStatus[] = await Promise.all(targets.map((target) => target.execute()));
+    if (statuses.some((status) => status === NodeStatus.FAIL)) process.exit(1);
+    else process.exit(0);
+  }
+}
