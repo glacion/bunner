@@ -10,12 +10,12 @@ export class Graph {
   constructor(config: GraphConfig) {
     const edges = this.collect(config.nodes)
       .flatMap((from) => from.dependencies?.map((to) => ({ from, to: from.resolve(to)[0]! })) ?? [])
-      .map((edge) => `"${edge.from.name}" -> "${edge.to.name}";`);
+      .map((edge) => `"${edge.from.fqn}" -> "${edge.to.fqn}";`);
 
     this.dot = `
       digraph bunner {
         rankdir="LR";
-        ${config.nodes.map((node) => `"${node.name}" [shape=doublecircle];`).join(" ")}
+        ${config.nodes.map((node) => `"${node.fqn}" [shape=doublecircle];`).join(" ")}
         ${new Set(edges).keys().toArray().join(" ")}
       }
     `;

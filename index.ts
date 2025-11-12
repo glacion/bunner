@@ -26,4 +26,4 @@ if (program.args.length) {
   const targets = program.args.flatMap((pattern) => module.default.root.resolve(new RegExp(pattern)));
   if (options.dryRun) console.log(new Graph({ nodes: targets }).dot);
   else await Promise.all(targets.map((target) => target.execute()));
-} else module.default.root.resolve(/.*/).forEach((node: Node) => console.log(node.name));
+} else module.default.root.resolve(/./).forEach((node: Node) => console.log(node.fqn));

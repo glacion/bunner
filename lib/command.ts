@@ -24,7 +24,7 @@ export class Command extends Node {
     if (!this.process) {
       this.process = Bun.spawn({
         cmd: this.command,
-        cwd: this.directory,
+        cwd: this.cwd,
         env: { ...process.env, ...this.environment },
         stderr: "pipe",
         stdin: "ignore",
@@ -32,8 +32,8 @@ export class Command extends Node {
       });
 
       await Promise.all([
-        this.stream(this.process.stdout, (line) => stdout.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
-        this.stream(this.process.stderr, (line) => stderr.write(`[${styleText(this.color, this.name)}]: ${line}\n`)),
+        this.stream(this.process.stdout, (line) => stdout.write(`[${styleText(this.color, this.fqn)}]: ${line}\n`)),
+        this.stream(this.process.stderr, (line) => stderr.write(`[${styleText(this.color, this.fqn)}]: ${line}\n`)),
       ]);
     }
 

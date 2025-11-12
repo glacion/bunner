@@ -14,29 +14,37 @@ export interface NodeConfig {
 }
 
 export class Node {
-  children: Record<string, Node>;
-  color: Color;
   dependencies: (string | RegExp | Node)[];
-  directory: string | undefined;
-  parent: Node | undefined;
   name: string;
+  private children: Record<string, Node>;
+  private directory: string | undefined;
+  private parent: Node | undefined;
+  protected color: Color;
 
   constructor(config: NodeConfig) {
     this.children = {};
     this.color = config.color ?? random();
-    this.dependencies = config.dependencies ?? [];
     this.directory = config.directory;
+    this.dependencies = config.dependencies ?? [];
     this.name = config.name;
     if (config.parent) config.parent.child(this);
   }
 
   child(child: Node): Node {
-    child.name = `${this.name}:${child.name}`;
     child.parent = this;
-    child.directory = child.directory ?? this.resolveDirectory();
-    if (this.root.children[child.name]) throw new Error("another child with the same name exists");
-    this.root.children[child.name] = child;
+    if (this.children[child.name]) throw new Error("another child with the same name exists");
+    this.children[child.name] = child;
     return child;
+  }
+
+  collect(): Node[] {
+    return [...Object.values(this.children), ...Object.values(this.children).flatMap((child) => child.collect())];
+  }
+
+  get cwd(): string {
+    if (this.directory) return this.directory;
+    if (this.parent) return this.parent.cwd;
+    throw new Error("directory must be defined at least at root node");
   }
 
   async execute(): Promise<NodeStatus> {
@@ -46,24 +54,20 @@ export class Node {
     else return NodeStatus.SUCCESS;
   }
 
+  get fqn(): string {
+    if (!this.parent) return this.name;
+    return `${this.parent.fqn}:${this.name}`;
+  }
+
   resolve(target: string | RegExp | Node): Node[] {
     if (target instanceof Node) return [target];
-    if (target instanceof RegExp) {
-      const nodes = Object.values(this.root.children)
-        .filter((node) => target.test(node.name))
-        .map((node) => this.root.children[node.name]!);
-      if (nodes.length) return nodes;
-    } else if (this.root.children[target]) return [this.root.children[target]];
+    if (target instanceof RegExp) return this.root.collect().filter((node) => target.test(node.fqn));
+    const node = this.root.collect().find((node) => node.fqn === target);
+    if (node) return [node];
     throw new Error("no nodes found");
   }
 
-  private resolveDirectory(): string | undefined {
-    if (this.directory) return this.directory;
-    if (this.parent) return this.parent.resolveDirectory();
-    throw new Error("directory must be defined at least at root node");
-  }
-
-  get root(): Node {
+  private get root(): Node {
     if (this.parent) return this.parent.root;
     return this;
   }

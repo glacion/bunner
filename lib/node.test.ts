@@ -2,51 +2,68 @@ import { describe, expect, test } from "bun:test";
 import { Node } from "./node";
 
 describe("node", () => {
-  describe("name", () => {
+  describe("fqn", () => {
     test("computes fully qualified names from constructor", () => {
       const root = new Node({ directory: "/repo", name: "root" });
       const child = new Node({ name: "child", parent: root });
-      expect(child.name).toBe("root:child");
+      expect(child.fqn).toBe("root:child");
     });
 
     test("computes fully qualified names from child method", () => {
       const root = new Node({ directory: "/repo", name: "root" });
       const child = root.child(new Node({ name: "child" }));
-      expect(child.name).toBe("root:child");
+      expect(child.fqn).toBe("root:child");
     });
 
     test("computes fully qualified names recursively", () => {
       const root = new Node({ directory: "/repo", name: "root" });
       const a = new Node({ name: "a", parent: root });
       const b = new Node({ name: "b", parent: a });
-      expect(b.name).toBe("root:a:b");
+      expect(b.fqn).toBe("root:a:b");
     });
   });
 
-  describe("directory", () => {
+  describe("cwd", () => {
     test("inherits directory from its parent when unspecified", () => {
       const root = new Node({ name: "root", directory: "/repo" });
       const child = new Node({ name: "child", parent: root });
-      expect(child.directory).toBe("/repo");
+      expect(child.cwd).toBe("/repo");
     });
 
     test("prefers explicitly configured directories", () => {
       const root = new Node({ name: "root", directory: "/repo" });
       const child = new Node({ name: "child", directory: "/custom", parent: root });
-      expect(child.directory).toBe("/custom");
+      expect(child.cwd).toBe("/custom");
     });
 
     test("recurses through ancestors until it finds a directory", () => {
       const root = new Node({ name: "root", directory: "/repo" });
       const namespace = new Node({ name: "namespace", parent: root });
-      namespace.directory = undefined;
       const nested = new Node({ name: "nested", parent: namespace });
-      nested.directory = undefined;
-      const deeper = new Node({ name: "deeper", parent: nested });
-      deeper.directory = undefined;
-      const leaf = new Node({ name: "leaf", parent: deeper });
+      const leaf = new Node({ name: "leaf", parent: nested });
 
-      expect(leaf.directory).toBe("/repo");
+      expect(leaf.cwd).toBe("/repo");
+    });
+  });
+
+  describe("collect", () => {
+    test("returns direct children", () => {
+      const root = new Node({ directory: "/repo", name: "root" });
+      const task = new Node({ name: "task", parent: root });
+      const lint = new Node({ name: "lint", parent: root });
+
+      expect(root.collect()).toEqual([task, lint]);
+    });
+
+    test("flattens descendants depth-first", () => {
+      const root = new Node({ directory: "/repo", name: "root" });
+      const workspace = new Node({ name: "workspace", parent: root });
+      const api = new Node({ name: "api", parent: workspace });
+      const web = new Node({ name: "web", parent: workspace });
+      const lint = new Node({ name: "lint", parent: web });
+
+      expect(root.collect()).toEqual([workspace, api, web, lint]);
+      expect(workspace.collect()).toEqual([api, web, lint]);
     });
   });
 
@@ -67,7 +84,7 @@ describe("node", () => {
     test("matches children when given a fully qualified name", () => {
       const root = new Node({ directory: "/repo", name: "root" });
       const child = new Node({ name: "child", parent: root });
-      expect(root.resolve(child.name)).toEqual([child]);
+      expect(root.resolve(child.fqn)).toEqual([child]);
     });
 
     test("delegates resolution to the root when called from descendants", () => {
@@ -82,7 +99,7 @@ describe("node", () => {
       const namespace = new Node({ name: "namespace", parent: root });
       const sibling = new Node({ name: "sibling", parent: root });
       const task = new Node({ name: "task", parent: namespace });
-      expect(task.resolve(sibling.name)).toEqual([sibling]);
+      expect(task.resolve(sibling.fqn)).toEqual([sibling]);
     });
 
     test("throws when the target cannot be found", () => {
