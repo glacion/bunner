@@ -22,7 +22,7 @@ describe("command", () => {
     const stdout = writable();
     const stderr = writable();
 
-    const command = new Command({ color: "cyan", command: ["echo", "start"], name: "build" });
+    const command = new Command({ color: "cyan", command: ["echo", "start"], directory: import.meta.dir, name: "build" });
 
     await command.execute(stderr.writable, stdout.writable);
     expect(stdout.output()).toContain(`[${styleText("cyan", "build")}]: start\n`);
@@ -32,8 +32,13 @@ describe("command", () => {
     const stdout = writable();
     const stderr = writable();
 
-    const dependency = new Command({ command: ["false"], name: "fail" });
-    const command = new Command({ command: ["true"], dependencies: [dependency], name: "test" });
+    const dependency = new Command({ command: ["false"], directory: import.meta.dir, name: "fail" });
+    const command = new Command({
+      command: ["true"],
+      dependencies: [dependency],
+      directory: import.meta.dir,
+      name: "test",
+    });
 
     const status = await command.execute(stderr.writable, stdout.writable);
 

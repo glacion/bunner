@@ -1,7 +1,7 @@
 import { Command } from "./lib/command";
 import { Node } from "./lib/node";
 
-const bunner = new Node({ name: "bunner" });
+const bunner = new Node({ directory: import.meta.dir, name: "bunner" });
 
 const install = bunner.child(new Command({ name: "install", command: ["bun", "install"] }));
 

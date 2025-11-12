@@ -4,7 +4,7 @@ import { Node } from "./node";
 
 describe("graph", () => {
   test("renders direct dependency edges for provided nodes", () => {
-    const root = new Node({ name: "root" });
+    const root = new Node({ name: "root", directory: "/repo" });
     const install = new Node({ name: "install", parent: root });
     const testNode = new Node({ name: "test", parent: root, dependencies: [install] });
 
@@ -15,7 +15,7 @@ describe("graph", () => {
   });
 
   test("includes multiple nodes passed into the constructor", () => {
-    const root = new Node({ name: "root" });
+    const root = new Node({ name: "root", directory: "/repo" });
     const install = new Node({ name: "install", parent: root });
     const lint = new Node({ name: "lint", parent: root, dependencies: [install] });
     const testNode = new Node({ name: "test", parent: root, dependencies: [lint] });
