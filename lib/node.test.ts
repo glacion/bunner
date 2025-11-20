@@ -1,49 +1,29 @@
 import { describe, expect, test } from "bun:test";
-import { Node } from "./node";
+import { Node, NodeStatus } from "./node";
 
 describe("node", () => {
-  describe("fqn", () => {
-    test("computes fully qualified names from constructor", () => {
-      const root = new Node({ directory: "/repo", name: "root" });
-      const child = new Node({ name: "child", parent: root });
-      expect(child.fqn).toBe("root:child");
-    });
+  test("computes fully qualified names", () => {
+    const root = new Node({ directory: "/repo", name: "root" });
+    const child = new Node({ name: "child", parent: root });
+    expect(child.fqn).toBe("root:child");
 
-    test("computes fully qualified names from child method", () => {
-      const root = new Node({ directory: "/repo", name: "root" });
-      const child = root.child(new Node({ name: "child" }));
-      expect(child.fqn).toBe("root:child");
-    });
+    const child2 = root.child(new Node({ name: "child2" }));
+    expect(child2.fqn).toBe("root:child2");
 
-    test("computes fully qualified names recursively", () => {
-      const root = new Node({ directory: "/repo", name: "root" });
-      const a = new Node({ name: "a", parent: root });
-      const b = new Node({ name: "b", parent: a });
-      expect(b.fqn).toBe("root:a:b");
-    });
+    const grandchild = new Node({ name: "grandchild", parent: child });
+    expect(grandchild.fqn).toBe("root:child:grandchild");
   });
 
-  describe("cwd", () => {
-    test("inherits directory from its parent when unspecified", () => {
-      const root = new Node({ name: "root", directory: "/repo" });
-      const child = new Node({ name: "child", parent: root });
-      expect(child.cwd).toBe("/repo");
-    });
+  test("determines the correct working directory", () => {
+    const root = new Node({ name: "root", directory: "/repo" });
+    const child = new Node({ name: "child", parent: root });
+    expect(child.cwd).toBe("/repo");
 
-    test("prefers explicitly configured directories", () => {
-      const root = new Node({ name: "root", directory: "/repo" });
-      const child = new Node({ name: "child", directory: "/custom", parent: root });
-      expect(child.cwd).toBe("/custom");
-    });
+    const customCwd = new Node({ name: "custom", directory: "/custom", parent: root });
+    expect(customCwd.cwd).toBe("/custom");
 
-    test("recurses through ancestors until it finds a directory", () => {
-      const root = new Node({ name: "root", directory: "/repo" });
-      const namespace = new Node({ name: "namespace", parent: root });
-      const nested = new Node({ name: "nested", parent: namespace });
-      const leaf = new Node({ name: "leaf", parent: nested });
-
-      expect(leaf.cwd).toBe("/repo");
-    });
+    const grandchild = new Node({ name: "grandchild", parent: child });
+    expect(grandchild.cwd).toBe("/repo");
   });
 
   describe("collect", () => {
@@ -105,7 +85,7 @@ describe("node", () => {
     test("throws when the target cannot be found", () => {
       const root = new Node({ directory: "/repo", name: "root" });
       new Node({ name: "child", parent: root });
-      expect(() => root.resolve("missing")).toThrow("no nodes found");
+      expect(() => root.resolve("missing")).toThrow("no nodes found for target missing");
     });
 
     test("handles hierarchies and regex filters", () => {
@@ -124,6 +104,58 @@ describe("node", () => {
       expect(root.resolve(/app:(build|test)/)).toEqual([appBuild, appTest]);
       expect(web.resolve(/:(deploy|lint)$/)).toEqual([apiDeploy, webLint, webDeploy]);
       expect(api.resolve(/^root:(app|api|web)$/)).toEqual([app, api, web]);
+    });
+  });
+
+  describe("child", () => {
+    test("throws an error when adding a child with a duplicate name", () => {
+      const root = new Node({ name: "root" });
+      new Node({ name: "child", parent: root });
+      expect(() => new Node({ name: "child", parent: root })).toThrow("another child with the same name exists: child");
+    });
+  });
+
+  describe("execute", () => {
+    test("succeeds when there are no dependencies", async () => {
+      const node = new Node({ name: "node" });
+      const result = await node.execute();
+      expect(result).toBe(NodeStatus.SUCCESS);
+    });
+
+    test("succeeds when a dependency succeeds", async () => {
+      const dependency = new Node({ name: "dependency" });
+      dependency.execute = () => Promise.resolve(NodeStatus.SUCCESS);
+      const node = new Node({ name: "node", dependencies: [dependency] });
+      const result = await node.execute();
+      expect(result).toBe(NodeStatus.SUCCESS);
+    });
+
+    test("fails when a dependency fails", async () => {
+      const dependency = new Node({ name: "dependency" });
+      dependency.execute = () => Promise.resolve(NodeStatus.FAIL);
+      const node = new Node({ name: "node", dependencies: [dependency] });
+      const result = await node.execute();
+      expect(result).toBe(NodeStatus.FAIL);
+    });
+
+    test("fails when one of multiple dependencies fails", async () => {
+      const pass = new Node({ name: "pass" });
+      pass.execute = () => Promise.resolve(NodeStatus.SUCCESS);
+      const fail = new Node({ name: "fail" });
+      fail.execute = () => Promise.resolve(NodeStatus.FAIL);
+      const node = new Node({ name: "node", dependencies: [pass, fail] });
+      const result = await node.execute();
+      expect(result).toBe(NodeStatus.FAIL);
+    });
+
+    test("succeeds when all of multiple dependencies succeed", async () => {
+      const a = new Node({ name: "a" });
+      a.execute = () => Promise.resolve(NodeStatus.SUCCESS);
+      const b = new Node({ name: "b" });
+      b.execute = () => Promise.resolve(NodeStatus.SUCCESS);
+      const node = new Node({ name: "node", dependencies: [a, b] });
+      const result = await node.execute();
+      expect(result).toBe(NodeStatus.SUCCESS);
     });
   });
 });

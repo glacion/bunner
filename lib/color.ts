@@ -1,5 +1,5 @@
-export type Color = "red" | "green" | "yellow" | "blue" | "magenta" | "cyan" | "white";
-const colors: Color[] = ["red", "green", "yellow", "blue", "magenta", "cyan", "white"];
+export type Color = "green" | "yellow" | "blue" | "magenta" | "cyan";
+const colors: Color[] = ["green", "yellow", "blue", "magenta", "cyan"];
 export const random = () => colors[Math.floor(Math.random() * colors.length)]!;
 
 export default colors;

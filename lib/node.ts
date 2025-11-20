@@ -32,7 +32,7 @@ export class Node {
 
   child(child: Node): Node {
     child.parent = this;
-    if (this.children[child.name]) throw new Error("another child with the same name exists");
+    if (this.children[child.name]) throw new Error(`another child with the same name exists: ${child.name}`);
     this.children[child.name] = child;
     return child;
   }
@@ -48,10 +48,13 @@ export class Node {
   }
 
   async execute(): Promise<NodeStatus> {
-    const nodes = this.dependencies.flatMap((node) => this.resolve(node));
-    const statuses = await Promise.all(nodes.map((node) => node.execute()));
-    if (statuses.some((status) => status === NodeStatus.FAIL)) return NodeStatus.FAIL;
-    else return NodeStatus.SUCCESS;
+    for (const dependency of this.dependencies) {
+      for (const node of this.resolve(dependency)) {
+        const result = await node.execute();
+        if (result === NodeStatus.FAIL) return NodeStatus.FAIL;
+      }
+    }
+    return NodeStatus.SUCCESS;
   }
 
   get fqn(): string {
@@ -61,10 +64,11 @@ export class Node {
 
   resolve(target: string | RegExp | Node): Node[] {
     if (target instanceof Node) return [target];
-    if (target instanceof RegExp) return this.root.collect().filter((node) => target.test(node.fqn));
-    const node = this.root.collect().find((node) => node.fqn === target);
-    if (node) return [node];
-    throw new Error("no nodes found");
+    const allNodes = [this.root, ...this.root.collect()];
+    if (target instanceof RegExp) return allNodes.filter((node) => target.test(node.fqn));
+    const nodes = allNodes.filter((node) => node.fqn === target || node.fqn.endsWith(`:${target}`));
+    if (nodes.length > 0) return nodes;
+    throw new Error(`no nodes found for target ${target}`);
   }
 
   private get root(): Node {

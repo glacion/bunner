@@ -20,7 +20,7 @@ bun add -g @glacion/bunner
 After installing, `bunx bunner` (or the globally installed `bunner`) becomes available.
 
 ## Quick start
-Create a `bunner.ts` file at the root of your repo and export a single `Node`. Each child node becomes addressable via its fully-qualified name (`<parent>:<child>`).
+Create a `bunner.ts` file at the root of your repo and export a single `Node`. This file is the default task definition file, and the CLI entrypoint is `index.ts`. Each child node becomes addressable via its fully-qualified name (`<parent>:<child>`).
 
 ```ts
 // bunner.ts
@@ -178,6 +178,7 @@ Under the hood, dependencies are resolved breadth-first and executed with `Promi
 ```bash
 bun install   # install dependencies
 bun test      # run the library test suite
+bun run biome # run the linter
 ```
 
 ## License

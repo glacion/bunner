@@ -20,7 +20,9 @@ export class Command extends Node {
   }
 
   override async execute(stderr: Writable = process.stderr, stdout: Writable = process.stdout): Promise<NodeStatus> {
-    if ((await super.execute()) === NodeStatus.FAIL) return NodeStatus.FAIL;
+    const result = await super.execute();
+    if (result === NodeStatus.FAIL) return result;
+
     if (!this.process) {
       this.process = Bun.spawn({
         cmd: this.command,
