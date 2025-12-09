@@ -1,15 +1,12 @@
 import { Command } from "./lib/command";
-import { Node } from "./lib/node";
+import { Graph } from "./lib/graph";
 
-const bunner = new Node({ directory: import.meta.dir, name: "bunner" });
+const dag = new Graph(import.meta.dir);
 
-const install = bunner.child(new Command({ name: "install", command: ["bun", "install"] }));
+const install = dag.add(new Command({ name: "install", cwd: import.meta.dir }, "bun", "install"));
+const lint = dag.add(new Command({ name: "lint", cwd: import.meta.dir, dependsOn: [install] }, "biome", "ci"));
+const test = dag.add(new Command({ name: "test", cwd: import.meta.dir, dependsOn: [install] }, "bun", "test"));
+const check = dag.add(new Command({ name: "check", cwd: import.meta.dir, dependsOn: [lint, test] }, "true"));
+dag.add(new Command({ name: "publish", cwd: import.meta.dir, dependsOn: [check] }, "bun", "publish"));
 
-const lint = bunner.child(new Command({ name: "lint", command: ["biome", "ci"], dependencies: [install] }));
-const test = bunner.child(new Command({ name: "test", command: ["bun", "test"], dependencies: [install] }));
-
-const check = bunner.child(new Node({ name: "check", dependencies: [lint, test] }));
-
-bunner.child(new Command({ name: "publish", command: ["bun", "publish"], dependencies: [check] }));
-
-export default bunner;
+export default dag;

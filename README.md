@@ -29,17 +29,11 @@ import { Node } from "./lib/node";
 
 const root = new Node({ name: "bunner" });
 
-const install = root.child(new Command({ name: "install", command: ["bun", "install"] }));
-const lint = root.child(new Command({ name: "lint", command: ["biome", "ci"], dependencies: [install] }));
-const test = root.child(new Command({ name: "test", command: ["bun", "test"], dependencies: [install] }));
+const install = root.child(new Command({ name: "install" }, "bun", "install"));
+const lint = root.child(new Command({ name: "lint", dependencies: [install] }, "biome", "ci"));
+const test = root.child(new Command({ name: "test", dependencies: [install] }, "bun", "test"));
 
-root.child(
-  new Command({
-    name: "publish",
-    command: ["bun", "publish"],
-    dependencies: [lint, test],
-  }),
-);
+root.child(new Command({ name: "publish", dependencies: [lint, test] }, "bun", "publish"));
 
 export default root;
 ```
@@ -65,30 +59,38 @@ The snippet below shows how you can fan out builds per package while keeping the
 ```ts
 // bunner.ts
 import path from "node:path";
+import { Callable } from "./lib/callable";
 import { Command } from "./lib/command";
-import { Node } from "./lib/node";
+import { Node, NodeStatus } from "./lib/node";
 
 const root = new Node({ name: "bunner" });
 const workspace = root.child(new Node({ name: "workspace" }));
 
 const apps = ["web", "docs", "landing"];
 apps.forEach((app) => {
-  workspace.child(
-    new Command({
-      name: app,
-      cwd: path.join(import.meta.dir, "apps", app),
-      command: ["bun", "run", "build"],
-    }),
-  );
+  workspace.child(new Command({ name: app, cwd: path.join(import.meta.dir, "apps", app) }, "bun", "run", "build"));
+});
+
+const beforeDeploy = new Callable({
+  name: "before-deploy",
+  parent: root,
+  task: async () => {
+    await Bun.sleep(10);
+    return NodeStatus.SUCCESS;
+  },
 });
 
 root.child(
-  new Command({
-    name: "deploy",
-    command: ["bun", "run", "scripts/deploy.ts"],
-    environment: { AWS_PROFILE: "prod" },
-    dependencies: [/workspace:/], // wait for every workspace:<app> build
-  }),
+  new Command(
+    {
+      name: "deploy",
+      dependencies: [beforeDeploy, /workspace:/], // wait for every workspace:<app> build
+      environment: { AWS_PROFILE: "prod" },
+    },
+    "bun",
+    "run",
+    "scripts/deploy.ts",
+  ),
 );
 
 export default root;
@@ -108,23 +110,11 @@ You can resolve dependencies by name (`"build:api"`) or by pattern (`/^build:/`)
 ```ts
 const root = new Node({ name: "bunner" });
 
-const build = root.child(new Command({ name: "build", command: ["bun", "run", "build"] }));
+const build = root.child(new Command({ name: "build" }, "bun", "run", "build"));
 
-const smoke = root.child(
-  new Command({
-    name: "smoke",
-    command: ["bun", "run", "test", "--", "--runInBand"],
-    dependencies: [build],
-  }),
-);
+const smoke = root.child(new Command({ name: "smoke", dependencies: [build] }, "bun", "run", "test", "--", "--runInBand"));
 
-root.child(
-  new Command({
-    name: "e2e",
-    command: ["bun", "run", "playwright", "test"],
-    dependencies: [smoke],
-  }),
-);
+root.child(new Command({ name: "e2e", dependencies: [smoke] }, "bun", "run", "playwright", "test"));
 ```
 
 Execute only smoke tests during PRs, then chain the e2e suite on main:
@@ -141,11 +131,15 @@ bunx bunner e2e
 
 | Flag | Description |
 | ---- | ----------- |
+| `-c, --concurrency <number>` | Maximum number of tasks to run simultaneously. Defaults to the number of available CPUs. |
+| `--force` | Run without reading or writing `bunner.lock` (forces all tasks to run). |
+| `--refresh-cache` | Recompute input checksums into `bunner.lock` without running tasks. |
 | `-f, --file <path>` | Path to the bunner definition file. Defaults to `bunner.ts` in the current working directory. |
 | `-n, --dry-run` | Print the Graphviz DOT for the execution plan instead of running commands. |
+| `-v, --verbose` | Print a summary of task outcomes (success, skipped, failed). |
 | _patterns_ | Optional positional arguments treated as regular expressions. Each expression selects matching nodes (e.g. `build`, `ci:.*`, `.*:deploy`). If omitted, bunner prints the available node names. |
 
-`bunner` executes the resolved nodes in parallel and stops the moment one fails. When commands are running, a prefixed, colored stream makes it easy to follow mixed stdout/stderr:
+`bunner` builds an execution graph, runs ready nodes in parallel (throttled to the number of CPU cores by default), and propagates failures to dependents while still running unrelated nodes. When commands are running, a prefixed, colored stream makes it easy to follow mixed stdout/stderr:
 
 ```
 [green lint]: Running biome ci
@@ -170,6 +164,7 @@ bunx bunner publish --dry-run | dot -Tpng > graph.png
 
 - **`Node`** represents a namespace in the graph. Nodes can depend on other nodes by reference, by name, or by regular expression. When you call `node.child(...)`, the child is automatically registered under the root so it can be located later.
 - **`Command`** extends `Node` and schedules a real process. It accepts `command` (`string[]`), optional `cwd`, and `environment` overrides. Standard output and error are piped back to the CLI with the node's color.
+- **Optional file caching**: add `inputs: string[]` (glob patterns relative to the node's `directory`) to a `Node` or `Command` to enable checksum-based skipping. The combined checksum is stored in the nearest `bunner.lock` found when walking up from the current working directory (created at the root if missing). Use `--force` to bypass it for a run, or `--refresh-cache` to rebuild the lock without executing tasks. When the inputs are unchanged, the node is marked successful without executing its command unless `force` is set (boolean or function returning truthy) to always run. You can also add `outputs: string[]` globs; if no files match those patterns, the task will run even when inputs are unchanged.
 
 Under the hood, dependencies are resolved breadth-first and executed with `Promise.all`, so unrelated branches of your graph run concurrently. If a dependency fails, its parents are marked as failed without running their commands.
 

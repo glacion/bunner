@@ -1,25 +1,16 @@
-import { Command } from "../command";
-import { Node } from "../node";
+import { Command } from "../../lib/command";
+import { Graph } from "../../lib/graph";
 
-const root = new Node({ directory: import.meta.dir, name: "bunner" });
+const dag = new Graph(import.meta.dir);
 
-const pass = root.child(new Command({ name: "pass", command: ["true"] }));
-const fail = root.child(new Command({ name: "fail", command: ["false"] }));
+const pass = dag.add(new Command({ name: "pass", cwd: import.meta.dir }, "true"));
+const fail = dag.add(new Command({ name: "fail", cwd: import.meta.dir }, "false"));
 
-// For testing deep dependency failure
-const deepFail = root.child(new Node({ name: "deep-fail", dependencies: [fail] }));
-root.child(new Node({ name: "dep-deep-fail", dependencies: [deepFail] }));
+const deepFail = dag.add(new Command({ name: "deep-fail", cwd: import.meta.dir, dependsOn: [fail] }, "true"));
+dag.add(new Command({ name: "dep-deep-fail", cwd: import.meta.dir, dependsOn: [deepFail] }, "true"));
 
-// For testing multiple dependencies
-root.child(new Node({ name: "multi-dep", dependencies: [pass, fail] }));
+dag.add(new Command({ name: "multi-dep", cwd: import.meta.dir, dependsOn: [pass, fail] }, "true"));
 
-// For testing environment variables
-root.child(
-  new Command({
-    name: "env-test",
-    command: ["/usr/bin/env", "bash", "-c", "echo $BUNNER_TEST"],
-    environment: { BUNNER_TEST: "hello" },
-  }),
-);
+dag.add(new Command({ name: "env-test", cwd: import.meta.dir, environment: { BUNNER_TEST: "hello" } }, "/usr/bin/env", "bash", "-c", "echo $BUNNER_TEST"));
 
-export default { root };
+export default dag;

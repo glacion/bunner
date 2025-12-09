@@ -1,0 +1,9 @@
+{
+  "drtv:nodejs:install": "88737ce62bb6c7aaa0606fbb044e82b604adeb1cd4a2ca0f9557757b1284525c",
+  "drtv:nodejs:fandom:nodejs:build": "b357733930bba369e3957d2cbed326783b98ff9beed0a3b1878be12814cc3913",
+  "drtv:nodejs:fandom:docker:build": "d00a84447d26d50f5c54ecf41e0026b8103e2aed8c93227c2ea7be746bd70e74",
+  "build": "38f608c31b5c1a6cf3df96e349461008be9954a19418e0099845cd3e84b4f4d4",
+  "install": "9403fe94fcf5aeaacb3132c70fda0f19172a6fb3571b336205ea52ede1557d25",
+  "service-a:build": "25a566d63ef5caa76da9c010a6927c96ab0c16c37c579ac1b414ca89143b0dd3",
+  "service-b:build": "d69662b83c07e00653d85d489fc26d3dd94513a5b843d0e5cf26a2fcdc33b4ec"
+}

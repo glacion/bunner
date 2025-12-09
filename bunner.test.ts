@@ -1,9 +1,9 @@
 import { Command } from "./lib/command";
-import { Node } from "./lib/node";
+import { Graph } from "./lib/graph";
 
-const root = new Node({ directory: import.meta.dir, name: "bunner" });
+const dag = new Graph(import.meta.dir);
 
-root.child(new Command({ name: "pass", command: ["true"] }));
-root.child(new Command({ name: "fail", command: ["false"] }));
+dag.add(new Command({ name: "pass", cwd: import.meta.dir }, "true"));
+dag.add(new Command({ name: "fail", cwd: import.meta.dir }, "false"));
 
-export default { root };
+export default dag;

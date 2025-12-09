@@ -1,5 +1,5 @@
-import { Node } from "../lib/node";
+import { Graph } from "../lib/graph";
 
-const root = new Node({ directory: import.meta.dir, name: "bunner" });
+const graph = new Graph(import.meta.dir);
 
-export default { root };
+export default graph;

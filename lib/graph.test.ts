@@ -1,43 +1,46 @@
 import { describe, expect, test } from "bun:test";
 import { Graph } from "./graph";
-import { Node } from "./node";
+import { TaskStatus } from "./status";
+import { Task } from "./task";
+
+const makeTask = (name: string, dependsOn: Task[] = []) => new Task({ name, dependsOn, cwd: "/repo" }, async () => TaskStatus.SUCCESS);
 
 describe("graph", () => {
   test("renders direct dependency edges for provided nodes", () => {
-    const root = new Node({ name: "root", directory: "/repo" });
-    const install = new Node({ name: "install", parent: root });
-    const testNode = new Node({ name: "test", parent: root, dependencies: [install] });
+    const dag = new Graph("/repo");
+    const install = dag.add(makeTask("install"));
+    const testTask = dag.add(makeTask("test", [install]));
 
-    const graph = new Graph({ nodes: [testNode] }).dot;
+    const graph = dag.dot([testTask]);
 
-    expect(graph).toContain('"root:test" -> "root:install";');
+    expect(graph).toContain('"install" -> "test";');
     expect(graph).toContain('rankdir="LR";');
   });
 
   test("includes multiple nodes passed into the constructor", () => {
-    const root = new Node({ name: "root", directory: "/repo" });
-    const install = new Node({ name: "install", parent: root });
-    const lint = new Node({ name: "lint", parent: root, dependencies: [install] });
-    const testNode = new Node({ name: "test", parent: root, dependencies: [lint] });
+    const dag = new Graph("/repo");
+    const install = dag.add(makeTask("install"));
+    const lint = dag.add(makeTask("lint", [install]));
+    const testTask = dag.add(makeTask("test", [lint]));
 
-    const graph = new Graph({ nodes: [lint, testNode] }).dot;
+    const graph = dag.dot([lint, testTask]);
 
-    expect(graph).toContain('"root:lint" -> "root:install";');
-    expect(graph).toContain('"root:test" -> "root:lint";');
+    expect(graph).toContain('"install" -> "lint";');
+    expect(graph).toContain('"lint" -> "test";');
   });
 
   test("handles recursive dependencies", () => {
-    const root = new Node({ name: "root", directory: "/repo" });
-    const a = new Node({ name: "a", parent: root });
-    const b = new Node({ name: "b", parent: root, dependencies: [a] });
-    const c = new Node({ name: "c", parent: root, dependencies: [a] });
-    const d = new Node({ name: "d", parent: root, dependencies: [b, c] });
+    const dag = new Graph("/repo");
+    const a = dag.add(makeTask("a"));
+    const b = dag.add(makeTask("b", [a]));
+    const c = dag.add(makeTask("c", [a]));
+    const d = dag.add(makeTask("d", [b, c]));
 
-    const graph = new Graph({ nodes: [d] }).dot;
+    const graph = dag.dot([d]);
 
-    expect(graph).toContain('"root:d" -> "root:b";');
-    expect(graph).toContain('"root:d" -> "root:c";');
-    expect(graph).toContain('"root:b" -> "root:a";');
-    expect(graph).toContain('"root:c" -> "root:a";');
+    expect(graph).toContain('"a" -> "b";');
+    expect(graph).toContain('"a" -> "c";');
+    expect(graph).toContain('"b" -> "d";');
+    expect(graph).toContain('"c" -> "d";');
   });
 });

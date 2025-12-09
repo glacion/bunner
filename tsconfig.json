@@ -8,5 +8,6 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "target": "esnext"
-  }
+  },
+  "exclude": ["node_modules", "example"]
 }

@@ -6,7 +6,9 @@
     "bunner": "./index.ts"
   },
   "dependencies": {
-    "commander": "^14.0.2"
+    "commander": "^14.0.2",
+    "digraph-js": "^2.2.4",
+    "promise-limit": "^2.7.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.6",

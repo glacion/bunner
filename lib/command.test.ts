@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Writable } from "node:stream";
-import { styleText } from "node:util";
 import { Command } from "./command";
-import { NodeStatus } from "./node";
+import { TaskStatus } from "./status";
 
 const writable = () => {
   const chunks: string[] = [];
@@ -18,30 +17,40 @@ const writable = () => {
 };
 
 describe("command", () => {
-  test("spawns the configured process and streams prefixed output", async () => {
+  test("spawns the configured process and streams output", async () => {
     const stdout = writable();
     const stderr = writable();
 
-    const command = new Command({ color: "cyan", command: ["echo", "start"], directory: import.meta.dir, name: "build" });
+    const command = new Command({ name: "build", cwd: import.meta.dir }, "echo", "start");
 
-    await command.execute(stderr.writable, stdout.writable);
-    expect(stdout.output()).toContain(`[${styleText("cyan", "build")}]: start\n`);
+    const status = await command.execute({ stderr: stderr.writable, stdout: stdout.writable });
+    expect(status).toBe(TaskStatus.SUCCESS);
+    expect(stdout.output()).toContain("start\n");
   });
 
-  test("short circuits when a dependency fails", async () => {
-    const stdout = writable();
-    const stderr = writable();
+  test("writes via provided logger with custom prefix", async () => {
+    const logs: string[] = [];
+    const command = new Command({ name: "logger", cwd: import.meta.dir }, "echo", "hello");
 
-    const dependency = new Command({ command: ["false"], directory: import.meta.dir, name: "fail" });
-    const command = new Command({
-      command: ["true"],
-      dependencies: [dependency],
-      directory: import.meta.dir,
-      name: "test",
+    await command.execute({
+      logger: {
+        error: (line) => logs.push(`E:${line}`),
+        info: (line) => logs.push(`I:${line}`),
+        prefix: "[pref]",
+      },
     });
 
-    const status = await command.execute(stderr.writable, stdout.writable);
+    expect(logs.some((line) => line.includes("[pref]: hello"))).toBeTrue();
+    expect(logs.every((line) => line.startsWith("I:"))).toBeTrue();
+  });
 
-    expect(status).toBe(NodeStatus.FAIL);
+  test("returns failure when the process exits non-zero", async () => {
+    const command = new Command({ name: "fail", cwd: import.meta.dir }, "false");
+    const status = await command.execute();
+    expect(status).toBe(TaskStatus.FAIL);
+  });
+
+  test("throws when no command is provided", () => {
+    expect(() => new Command({ name: "empty", cwd: import.meta.dir })).toThrow("command must not be empty");
   });
 });

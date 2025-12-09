@@ -1,20 +1,26 @@
 import { Command } from "../lib/command";
-import { Node } from "../lib/node";
+import { Graph } from "../lib/graph";
 
-const root = new Node({ directory: import.meta.dir, name: "bunner" });
+const dag = new Graph(import.meta.dir);
 
-const pass = root.child(new Command({ name: "pass", command: ["true"] }));
-const fail = root.child(new Command({ name: "fail", command: ["false"] }));
-root.child(new Node({ name: "dep-pass", dependencies: [pass] }));
-const depFail = root.child(new Node({ name: "dep-fail", dependencies: [fail] }));
-root.child(new Node({ name: "dep-deep-fail", dependencies: [depFail] }));
-root.child(new Node({ name: "multi-dep", dependencies: [pass, fail] }));
-root.child(
-  new Command({
-    name: "env-test",
-    command: ["bun", "-e", 'Bun.write("/tmp/bunner-env-test", process.env.FOO)'],
-    environment: { FOO: "hello" },
-  }),
+const pass = dag.add(new Command({ name: "pass", cwd: import.meta.dir }, "true"));
+const fail = dag.add(new Command({ name: "fail", cwd: import.meta.dir }, "false"));
+
+dag.add(new Command({ name: "dep-pass", cwd: import.meta.dir, dependsOn: [pass] }, "true"));
+const depFail = dag.add(new Command({ name: "dep-fail", cwd: import.meta.dir, dependsOn: [fail] }, "true"));
+dag.add(new Command({ name: "dep-deep-fail", cwd: import.meta.dir, dependsOn: [depFail] }, "true"));
+dag.add(new Command({ name: "multi-dep", cwd: import.meta.dir, dependsOn: [pass, fail] }, "true"));
+dag.add(
+  new Command(
+    {
+      name: "env-test",
+      cwd: import.meta.dir,
+      environment: { FOO: "hello" },
+    },
+    "bun",
+    "-e",
+    'Bun.write("/tmp/bunner-env-test", process.env.FOO)',
+  ),
 );
 
-export default { root };
+export default dag;
