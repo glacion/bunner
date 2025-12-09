@@ -1,26 +1,20 @@
 import { Command } from "../lib/command";
-import { Graph } from "../lib/graph";
+import { Task } from "../lib/task";
 
-const dag = new Graph(import.meta.dir);
+const pass = new Command({ name: "pass", directory: import.meta.dir }, "true");
+const fail = new Command({ name: "fail", directory: import.meta.dir }, "false");
 
-const pass = dag.add(new Command({ name: "pass", cwd: import.meta.dir }, "true"));
-const fail = dag.add(new Command({ name: "fail", cwd: import.meta.dir }, "false"));
+const deepFail = new Command({ name: "deep-fail", directory: import.meta.dir, dependsOn: [fail] }, "true");
+const depDeepFail = new Command({ name: "dep-deep-fail", directory: import.meta.dir, dependsOn: [deepFail] }, "true");
 
-dag.add(new Command({ name: "dep-pass", cwd: import.meta.dir, dependsOn: [pass] }, "true"));
-const depFail = dag.add(new Command({ name: "dep-fail", cwd: import.meta.dir, dependsOn: [fail] }, "true"));
-dag.add(new Command({ name: "dep-deep-fail", cwd: import.meta.dir, dependsOn: [depFail] }, "true"));
-dag.add(new Command({ name: "multi-dep", cwd: import.meta.dir, dependsOn: [pass, fail] }, "true"));
-dag.add(
-  new Command(
-    {
-      name: "env-test",
-      cwd: import.meta.dir,
-      environment: { FOO: "hello" },
-    },
-    "bun",
-    "-e",
-    'Bun.write("/tmp/bunner-env-test", process.env.FOO)',
-  ),
+const multiDep = new Command({ name: "multi-dep", directory: import.meta.dir, dependsOn: [pass, fail] }, "true");
+
+const envTest = new Command(
+  { name: "env-test", directory: import.meta.dir, environment: { BUNNER_TEST: "hello" } },
+  "/usr/bin/env",
+  "bash",
+  "-c",
+  "echo $BUNNER_TEST > /tmp/bunner-env-test",
 );
 
-export default dag;
+export default new Task({ name: "root", dependsOn: [depDeepFail, multiDep, envTest, pass, fail], isGroup: true });

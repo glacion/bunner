@@ -1,9 +1,7 @@
 import { Command } from "../../lib/command";
-import { Graph } from "../../lib/graph";
+import { Task } from "../../lib/task";
 
-const dag = new Graph(import.meta.dir);
+const install = new Command({ name: "skiptest:install", directory: import.meta.dir, inputs: ["input.txt"] }, "true");
+const build = new Command({ name: "skiptest:build", directory: import.meta.dir, dependsOn: [install] }, "true");
 
-const install = dag.add(new Command({ name: "skiptest:install", cwd: import.meta.dir, inputs: ["input.txt"] }, "true"));
-dag.add(new Command({ name: "skiptest:build", cwd: import.meta.dir, dependsOn: [install] }, "true"));
-
-export default dag;
+export default new Task({ name: "root", dependsOn: [build], isGroup: true });

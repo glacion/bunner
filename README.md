@@ -68,7 +68,7 @@ const workspace = root.child(new Node({ name: "workspace" }));
 
 const apps = ["web", "docs", "landing"];
 apps.forEach((app) => {
-  workspace.child(new Command({ name: app, cwd: path.join(import.meta.dir, "apps", app) }, "bun", "run", "build"));
+  workspace.child(new Command({ name: app, directory: path.join(import.meta.dir, "apps", app) }, "bun", "run", "build"));
 });
 
 const beforeDeploy = new Callable({
@@ -163,7 +163,7 @@ bunx bunner publish --dry-run | dot -Tpng > graph.png
 ## Authoring nodes
 
 - **`Node`** represents a namespace in the graph. Nodes can depend on other nodes by reference, by name, or by regular expression. When you call `node.child(...)`, the child is automatically registered under the root so it can be located later.
-- **`Command`** extends `Node` and schedules a real process. It accepts `command` (`string[]`), optional `cwd`, and `environment` overrides. Standard output and error are piped back to the CLI with the node's color.
+- **`Command`** extends `Node` and schedules a real process. It accepts `command` (`string[]`), optional `directory`, and `environment` overrides. Standard output and error are piped back to the CLI with the node's color.
 - **Optional file caching**: add `inputs: string[]` (glob patterns relative to the node's `directory`) to a `Node` or `Command` to enable checksum-based skipping. The combined checksum is stored in the nearest `bunner.lock` found when walking up from the current working directory (created at the root if missing). Use `--force` to bypass it for a run, or `--refresh-cache` to rebuild the lock without executing tasks. When the inputs are unchanged, the node is marked successful without executing its command unless `force` is set (boolean or function returning truthy) to always run. You can also add `outputs: string[]` globs; if no files match those patterns, the task will run even when inputs are unchanged.
 
 Under the hood, dependencies are resolved breadth-first and executed with `Promise.all`, so unrelated branches of your graph run concurrently. If a dependency fails, its parents are marked as failed without running their commands.

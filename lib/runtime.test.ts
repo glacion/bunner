@@ -9,22 +9,22 @@ import { Task } from "./task";
 
 describe("runtime", () => {
   test("runs dependencies before dependents", async () => {
-    const dag = new Graph();
+    const graph = new Graph();
     const order: string[] = [];
-    const a = dag.add(
+    const a = graph.add(
       new Task({ name: "a" }, async () => {
         order.push("a");
         return TaskStatus.SUCCESS;
       }),
     );
-    const b = dag.add(
+    const b = graph.add(
       new Task({ name: "b", dependsOn: [a] }, async () => {
         order.push("b");
         return TaskStatus.SUCCESS;
       }),
     );
 
-    const runtime = new Runtime(dag, { cache: null });
+    const runtime = new Runtime(graph, { cache: null });
     const result = await runtime.run([b]);
 
     expect(result.get(a)).toBe(TaskStatus.SUCCESS);
@@ -33,33 +33,33 @@ describe("runtime", () => {
   });
 
   test("skips tasks when inputs are unchanged", async () => {
-    const cwd = mkdtempSync(join(tmpdir(), "bunner-runtime-"));
-    const dag = new Graph(cwd);
-    const work = join(cwd, "input.txt");
+    const directory = mkdtempSync(join(tmpdir(), "bunner-runtime-"));
+    const graph = new Graph(directory);
+    const work = join(directory, "input.txt");
     writeFileSync(work, "hello");
 
-    const build = dag.add(
+    const build = graph.add(
       new Task(
         {
           name: "build",
-          cwd,
+          directory,
           inputs: ["input.txt"],
           outputs: ["output.txt"],
         },
         async () => {
-          writeFileSync(join(cwd, "output.txt"), "done");
+          writeFileSync(join(directory, "output.txt"), "done");
           return TaskStatus.SUCCESS;
         },
       ),
     );
 
-    const runtime = new Runtime(dag);
+    const runtime = new Runtime(graph);
     const first = await runtime.run([build]);
     expect(first.get(build)).toBe(TaskStatus.SUCCESS);
 
-    const second = await new Runtime(dag).run([build]);
+    const second = await new Runtime(graph).run([build]);
     expect(second.get(build)).toBe(TaskStatus.SKIP);
 
-    rmSync(cwd, { recursive: true, force: true });
+    rmSync(directory, { recursive: true, force: true });
   });
 });

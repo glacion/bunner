@@ -1,12 +1,10 @@
 import { Command } from "./lib/command";
-import { Graph } from "./lib/graph";
+import { Task } from "./lib/task";
 
-const dag = new Graph(import.meta.dir);
+const install = new Command({ name: "install", directory: import.meta.dir }, "bun", "install");
+const lint = new Command({ name: "lint", directory: import.meta.dir, dependsOn: [install] }, "biome", "ci");
+const test = new Command({ name: "test", directory: import.meta.dir, dependsOn: [install] }, "bun", "test");
+const check = new Command({ name: "check", directory: import.meta.dir, dependsOn: [lint, test] }, "true");
+const publish = new Command({ name: "publish", directory: import.meta.dir, dependsOn: [check] }, "bun", "publish");
 
-const install = dag.add(new Command({ name: "install", cwd: import.meta.dir }, "bun", "install"));
-const lint = dag.add(new Command({ name: "lint", cwd: import.meta.dir, dependsOn: [install] }, "biome", "ci"));
-const test = dag.add(new Command({ name: "test", cwd: import.meta.dir, dependsOn: [install] }, "bun", "test"));
-const check = dag.add(new Command({ name: "check", cwd: import.meta.dir, dependsOn: [lint, test] }, "true"));
-dag.add(new Command({ name: "publish", cwd: import.meta.dir, dependsOn: [check] }, "bun", "publish"));
-
-export default dag;
+export default new Task({ name: "bunner", dependsOn: [publish], isGroup: true });

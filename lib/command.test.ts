@@ -21,7 +21,7 @@ describe("command", () => {
     const stdout = writable();
     const stderr = writable();
 
-    const command = new Command({ name: "build", cwd: import.meta.dir }, "echo", "start");
+    const command = new Command({ name: "build", directory: import.meta.dir }, "echo", "start");
 
     const status = await command.execute({ stderr: stderr.writable, stdout: stdout.writable });
     expect(status).toBe(TaskStatus.SUCCESS);
@@ -30,7 +30,7 @@ describe("command", () => {
 
   test("writes via provided logger with custom prefix", async () => {
     const logs: string[] = [];
-    const command = new Command({ name: "logger", cwd: import.meta.dir }, "echo", "hello");
+    const command = new Command({ name: "logger", directory: import.meta.dir }, "echo", "hello");
 
     await command.execute({
       logger: {
@@ -45,12 +45,12 @@ describe("command", () => {
   });
 
   test("returns failure when the process exits non-zero", async () => {
-    const command = new Command({ name: "fail", cwd: import.meta.dir }, "false");
+    const command = new Command({ name: "fail", directory: import.meta.dir }, "false");
     const status = await command.execute();
     expect(status).toBe(TaskStatus.FAIL);
   });
 
   test("throws when no command is provided", () => {
-    expect(() => new Command({ name: "empty", cwd: import.meta.dir })).toThrow("command must not be empty");
+    expect(() => new Command({ name: "empty", directory: import.meta.dir })).toThrow("command must not be empty");
   });
 });

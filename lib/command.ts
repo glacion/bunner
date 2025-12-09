@@ -2,10 +2,11 @@ import { EOL } from "node:os";
 import type { Writable } from "node:stream";
 import { styleText } from "node:util";
 import { TaskStatus } from "./status";
-import { type ExecuteOptions, Task, type TaskConfig } from "./task";
+import { type ExecuteConfig, Task, type TaskConfig } from "./task";
 
 export interface CommandConfig extends TaskConfig {
   environment?: Record<string, string>;
+  command?: string[];
 }
 
 export class Command extends Task {
@@ -14,7 +15,7 @@ export class Command extends Task {
   private process?: Bun.Subprocess<"ignore", "pipe", "pipe">;
 
   constructor(config: CommandConfig, ...command: string[]) {
-    const action = async (options: ExecuteOptions = {}): Promise<TaskStatus> => {
+    const action = async (options: ExecuteConfig = {}): Promise<TaskStatus> => {
       const stderr: Writable = options.stderr ?? process.stderr;
       const stdout: Writable = options.stdout ?? process.stdout;
       const prefix = options.logger?.prefix ?? `[${styleText("yellow", this.name)}]`;
@@ -22,7 +23,7 @@ export class Command extends Task {
       if (!this.process) {
         this.process = Bun.spawn({
           cmd: this.command,
-          cwd: this.cwd ?? process.cwd(),
+          cwd: this.directory ?? process.cwd(),
           env: { ...process.env, ...this.environment },
           stderr: "pipe",
           stdin: "ignore",
@@ -42,6 +43,11 @@ export class Command extends Task {
     super(config, action);
     this.command = command;
     this.environment = config.environment;
+
+    if (this.command.length === 0 && config.command && config.command.length > 0) {
+      this.command = config.command;
+    }
+
     if (this.command.length === 0) throw new Error("command must not be empty");
   }
 }
@@ -49,11 +55,18 @@ export class Command extends Task {
 const stream = async (stream: ReadableStream<Uint8Array> | undefined, handler: (msg: string) => void) => {
   if (!stream) return;
   const decoder = new TextDecoder();
-  for await (const input of stream) {
+  const reader = stream.getReader();
+
+  const read = async (): Promise<void> => {
+    const { done, value } = await reader.read();
+    if (done) return;
     decoder
-      .decode(input, { stream: true })
+      .decode(value, { stream: true })
       .split(EOL)
       .filter((line) => line)
       .forEach(handler);
-  }
+    return read();
+  };
+
+  await read();
 };

@@ -4,3 +4,4 @@ DO_NOT_TRACK = 1
 
 [tools]
 bun = "1.3.2"
+dagger = "latest"

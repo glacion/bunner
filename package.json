@@ -8,6 +8,7 @@
   "dependencies": {
     "commander": "^14.0.2",
     "digraph-js": "^2.2.4",
+    "dockerode": "^4.0.9",
     "promise-limit": "^2.7.0"
   },
   "devDependencies": {

@@ -1,20 +1,21 @@
+import { TaskStatus } from "./status";
 import type { Writable } from "node:stream";
-import type { TaskStatus } from "./status";
 
 export type TaskRef = string | RegExp | Task;
 
 export interface TaskConfig {
   name: string;
-  cwd?: string;
+  directory?: string;
   dependsOn?: TaskRef[];
   inputs?: string[];
   outputs?: string[];
   force?: boolean | (() => boolean | Promise<boolean>);
+  isGroup?: boolean; // New property
 }
 
-export type TaskAction = (options: ExecuteOptions) => Promise<TaskStatus>;
+export type Action = (options: ExecuteConfig) => Promise<TaskStatus>;
 
-export interface ExecuteOptions {
+export interface ExecuteConfig {
   stdout?: Writable;
   stderr?: Writable;
   logger?: {
@@ -26,24 +27,26 @@ export interface ExecuteOptions {
 
 export class Task {
   readonly name: string;
-  readonly cwd: string | undefined;
+  readonly directory: string | undefined;
   readonly dependsOn: TaskRef[];
   readonly inputs: string[] | undefined;
   readonly outputs: string[] | undefined;
+  readonly isGroup: boolean; // New property
   private force: boolean | (() => boolean | Promise<boolean>) | undefined;
-  private action: TaskAction;
+  private action: Action;
 
-  constructor(config: TaskConfig, action: TaskAction) {
+  constructor(config: TaskConfig, action?: Action) {
     this.name = config.name;
-    this.cwd = config.cwd;
+    this.directory = config.directory;
     this.dependsOn = config.dependsOn ?? [];
     this.inputs = config.inputs;
     this.outputs = config.outputs;
     this.force = config.force;
-    this.action = action;
+    this.isGroup = config.isGroup ?? false; // Initialize new property
+    this.action = action ?? (async () => TaskStatus.SUCCESS);
   }
 
-  async execute(options: ExecuteOptions = {}): Promise<TaskStatus> {
+  async execute(options: ExecuteConfig = {}): Promise<TaskStatus> {
     return this.action(options);
   }
 

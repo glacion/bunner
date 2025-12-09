@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveLockPath } from "./cache";
+import { Lock } from "./lock";
 
 describe("resolveLockPath", () => {
   test("falls back to the starting directory when no lock exists", async () => {
@@ -10,7 +10,7 @@ describe("resolveLockPath", () => {
     const nested = path.join(root, "a", "b", "c");
     await mkdir(nested, { recursive: true });
 
-    const resolved = resolveLockPath(nested);
+    const resolved = new Lock({ directory: nested }).resolve();
     expect(resolved).toBe(path.join(nested, "bunner.lock"));
   });
 
@@ -21,7 +21,7 @@ describe("resolveLockPath", () => {
     const nested = path.join(root, "a", "b");
     await mkdir(nested, { recursive: true });
 
-    const resolved = resolveLockPath(nested);
+    const resolved = new Lock({ directory: nested }).resolve();
     expect(resolved).toBe(lockPath);
   });
 });

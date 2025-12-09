@@ -43,15 +43,15 @@ test("handles failing tasks", () => {
     },
   ];
 
-  for (const { args, expected } of scenarios) {
+  scenarios.forEach(({ args, expected }) => {
     const { exitCode, stderr } = run(args);
     const stderrString = stderr.toString();
     expect(exitCode).toBe(1);
     expect(stderrString).toInclude("Failed tasks:");
-    for (const task of expected) {
+    expected.forEach((task) => {
       expect(stderrString).toInclude(task);
-    }
-  }
+    });
+  });
 });
 
 test("reports an error when the task is unknown", () => {

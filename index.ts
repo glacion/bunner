@@ -2,9 +2,10 @@
 
 import path from "node:path";
 import { Command } from "commander";
-import { CacheStore, resolveLockPath } from "./lib/cache";
+import { CacheStore } from "./lib/cache";
 import { defaultConcurrency } from "./lib/concurrency";
-import type { Graph } from "./lib/graph";
+import { Graph } from "./lib/graph";
+import { Lock } from "./lib/lock";
 import { Runtime } from "./lib/runtime";
 import { TaskStatus } from "./lib/status";
 import type { Task } from "./lib/task";
@@ -36,38 +37,50 @@ cli
       throw new Error("concurrency must be a positive integer");
     }
 
-    const dag: Graph = (await import(path.resolve(process.cwd(), options.file))).default;
-    if (!dag || typeof dag.list !== "function") throw new Error(`default export of ${options.file} must be a Graph`);
-    const lockPath = resolveLockPath(process.cwd());
-    const cache = options.force ? null : new CacheStore(lockPath);
+    const export_ = (await import(path.resolve(process.cwd(), options.file))).default;
+    const tasks: Task[] = Array.isArray(export_) ? export_ : [export_];
+    
+    // Validate all tasks
+    if (tasks.length === 0 || tasks.some(t => !t || typeof t.name !== "string" || !Array.isArray(t.dependsOn))) {
+       throw new Error(`default export of ${options.file} must be a Task or Task[] (checking for .name and .dependsOn)`);
+    }
+
+    const graph = new Graph(process.cwd());
+    tasks.forEach(task => graph.traverse(task));
+
+    const lock = new Lock({ directory: process.cwd() });
+    const cache = options.force ? null : new CacheStore(lock);
 
     if (!cli.args.length) {
-      dag.list().forEach((task: Task) => console.log(task.name));
+      graph.list().forEach((task: Task) => console.log(task.name));
       process.exit(1);
     }
 
-    const targets = cli.args.flatMap((pattern) => dag.resolve(new RegExp(pattern)));
+    const targets = cli.args.flatMap((pattern) => graph.resolve(new RegExp(pattern)));
 
     if (options.dryRun) {
-      console.log(dag.dot(targets));
+      console.log(graph.dot(targets));
       process.exit();
     }
 
     if (targets.length === 0) {
       console.error(`no tasks found for pattern ${cli.args.join(" ")}`);
       console.error(`\nAvailable tasks:`);
-      dag.list().forEach((task: Task) => console.error(`- ${task.name}`));
+      graph.list().forEach((task: Task) => console.error(`- ${task.name}`));
       process.exit(1);
     }
 
-    const runtime = new Runtime(dag, { cache, refreshCache: options.refreshCache, concurrency: options.concurrency ?? defaultConcurrency });
+    const runtime = new Runtime(graph, { cache, refreshCache: options.refreshCache, concurrency: options.concurrency ?? defaultConcurrency });
     const statuses = await runtime.run(targets);
-    const summary = { failed: 0, skipped: 0, succeeded: 0 };
-    for (const status of statuses.values()) {
-      if (status === TaskStatus.FAIL) summary.failed++;
-      else if (status === TaskStatus.SKIP) summary.skipped++;
-      else if (status === TaskStatus.SUCCESS) summary.succeeded++;
-    }
+    const summary = Array.from(statuses.values()).reduce(
+      (acc, status) => {
+        if (status === TaskStatus.FAIL) acc.failed++;
+        else if (status === TaskStatus.SKIP) acc.skipped++;
+        else if (status === TaskStatus.SUCCESS) acc.succeeded++;
+        return acc;
+      },
+      { failed: 0, skipped: 0, succeeded: 0 },
+    );
 
     const failed = Array.from(statuses.entries())
       .filter(([, status]) => status === TaskStatus.FAIL)

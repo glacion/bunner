@@ -1,5 +1,3 @@
-import { Graph } from "../lib/graph";
+import { Task } from "../lib/task";
 
-const graph = new Graph(import.meta.dir);
-
-export default graph;
+export default new Task({ name: "empty", isGroup: true });
