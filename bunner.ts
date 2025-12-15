@@ -1,37 +1,46 @@
-import path from "node:path";
-import { Namespace } from "#/lib/namespace";
+import { Command } from "./lib/command";
+import { TargetGraph } from "./lib/graph";
+import type { VertexDefinition } from "digraph-js";
+import type { Target } from "./lib/target";
 
-const bunner = new Namespace({ name: "bunner" });
+const vertex = (target: Target, dependencies: Target[] = []): VertexDefinition<Target> => ({
+  id: target.id,
+  adjacentTo: dependencies.map((dependency) => dependency.id),
+  body: target,
+});
 
-const runCli = async (args: string[] = [], options: { cwd?: string } = {}) => {
-  const cwd = options.cwd ?? process.cwd();
-  const entry = path.resolve(__dirname, "src/index.ts");
-  const fixture = path.resolve(__dirname, "test/bunner.ts");
-  const scriptArgs = ["--file", path.relative(cwd, fixture), ...args];
-  const command = ["bun", "run", entry, "--", ...scriptArgs];
-  const child = Bun.spawn(command, { cwd, stderr: "pipe", stdout: "pipe" });
-  const stdoutPromise = child.stdout ? child.stdout.text() : Promise.resolve("");
-  const stderrPromise = child.stderr ? child.stderr.text() : Promise.resolve("");
-  const [stdout, stderr, exitCode] = await Promise.all([stdoutPromise, stderrPromise, child.exited]);
-  return { exitCode, stderr, stdout };
-};
+const bunner = new TargetGraph({ directory: import.meta.dir, name: "bunner" });
 
-bunner.task({
-  name: "test",
+const install = new Command("install", { command: ["bun", "install"], directory: bunner.config.directory });
+
+const lint = new Command("lint", {
+  command: ["biome", "ci"],
+  dependencies: [install],
+  directory: bunner.config.directory,
+});
+const test = new Command("test", {
   command: ["bun", "test"],
+  dependencies: [install],
+  directory: bunner.config.directory,
 });
 
-bunner.task({
-  name: "test:cli",
-  run: async () => {
-    const result = await runCli(["--list"]);
-    if (result.exitCode !== 0) throw new Error(`CLI tests failed with code ${result.exitCode}\n${result.stderr}`);
-  },
+const check = new Command("check", { dependencies: [lint, test], directory: bunner.config.directory });
+
+const publish = new Command("publish", {
+  command: ["bun", "publish"],
+  dependencies: [check],
+  directory: bunner.config.directory,
 });
 
-bunner.task({
-  name: "bunner:test",
-  dependencies: ["test", "test:cli"],
-});
+const pipeline = new TargetGraph({ directory: bunner.config.directory, name: "pipeline" });
+pipeline.addVertices(
+  vertex(install),
+  vertex(lint, [install]),
+  vertex(test, [install]),
+  vertex(check, [lint, test]),
+  vertex(publish, [check]),
+);
+
+bunner.child(pipeline);
 
 export default bunner;
